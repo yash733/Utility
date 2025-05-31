@@ -78,14 +78,14 @@ class data_extraction:
                 if docx_data:
                     data_to_update['docx_data'] = docx_data
                 
-                with st.expander('Loaded Data', expanded = True):
+                with st.expander('Loaded Data', expanded = False):
                     #log
                     data_track.info(f'data loaded in session_state')
 
                     # ----- Update Session_State with extracted data ----- #
                     st.session_state.data_uploaded.update({'data':data_to_update})
-                    st.write(st.session_state.data_uploaded)
-                    
+                    st.write(st.session_state.data_uploaded['data'])
+                        
             else:
                 st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
                 st.stop()
@@ -102,7 +102,8 @@ class data_extraction:
                     # log
                     data_track.info(f'data loaded in session_state')
                     st.session_state.data_uploaded.update({'data':{'text_data':text_data}})
-                    st.write(st.session_state.data_uploaded)
+                    text = st.session_state.data_uploaded['data'].get('text_data')
+                    st.write(text[:500])
 
         else:
             st.warning('Kindly select an Option')
@@ -113,11 +114,11 @@ class data_extraction:
             data_track.info('Meta Data')
 
             jd_data = st.text_area('Job Discription')
-            if jd_data:
+            if jd_data and st.button('Save', key = 'Jd_data'):
                 st.session_state.data_uploaded.update({'job_description':jd_data})
                 data_track.info('JD added')
 
             template_data = st.text_area('Template description')
-            if template_data:
+            if template_data and st.button('Save', key= 'temp_data'):
                 data_track.info('Template added')
                 st.session_state.data_upload.update({'template_data':template_data})

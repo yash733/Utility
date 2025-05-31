@@ -16,7 +16,8 @@ class Option_page:
         data_extraction.resume_data_extraction()
         if st.button(label='Next', key = 'LLM_Start'):
             # LLM Integration
-            
+            user_requirement = st.chat_input('Enter your requirement')
+            pass
 
     def create_cv(self):
         pass
