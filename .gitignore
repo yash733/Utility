@@ -1,0 +1,9 @@
+.venv
+testing
+__pycache__
+uv.lock
+.python-version
+config/__pycache__/
+ui/__pycache__/
+LLMbackend/__pycache__/
+logger
