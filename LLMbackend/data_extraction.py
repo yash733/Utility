@@ -56,6 +56,7 @@ class data_extraction:
                 # log
                 data_track.info('file uploaded')
 
+                pdf_data = list()
                 for file in files:
                     if file.name.lower().endswith('.pdf'):
                         # pdf
