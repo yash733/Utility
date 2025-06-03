@@ -38,8 +38,8 @@ class data_extraction:
 
     @staticmethod
     def resume_data_extraction():
-        pdf_data, txt_data, docx_data = [], [], []
         data_to_update = {}
+        pdf_data, txt_data, docx_data = {}, {}, {}
 
         # Input Method
         option = st.radio(label='Select Input format', options = ['Upload Existing Resume or Content', 'Add data in text box'])
@@ -56,19 +56,18 @@ class data_extraction:
                 # log
                 data_track.info('file uploaded')
 
-                pdf_data = list()
                 for file in files:
                     if file.name.lower().endswith('.pdf'):
                         # pdf
-                        pdf_data.append(data_extraction.data_pdf(file))
+                        pdf_data.update({file.name : data_extraction.data_pdf(file)})
                         
                     elif file.name.lower().endswith('.txt'):
                         # txt
-                        txt_data.append(data_extraction.data_txt(file))
+                        txt_data.update({file.name : data_extraction.data_txt(file)})
                         
                     elif file.name.lower().endswith('.docx'):   
                         # docx
-                        docx_data.append(data_extraction.data_docx(file))
+                        docx_data.update({file.name : data_extraction.data_docx(file)})
                 
                 data_to_update = {}
                 # Saving Loaded Data
