@@ -1,6 +1,4 @@
 import streamlit as st
-from PyPDF2 import PdfReader
-import docx
 from LLMbackend.data_extraction import data_extraction
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
