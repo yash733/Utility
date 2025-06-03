@@ -3,6 +3,7 @@ import docx
 import streamlit as st
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from logger.logg_rep import logging
 
@@ -57,17 +58,28 @@ class data_extraction:
                 data_track.info('file uploaded')
 
                 for file in files:
+                    with st.expander(label=f'What does {file.name} represents ?' ,expanded=True):
+                        data_representation = st.radio(label= 'Select what this document represents',
+                                                       options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
+                                                       index=None,
+                                                       key=f"label_{file.name}")
+                        if not data_representation:
+                            st.stop()
+
                     if file.name.lower().endswith('.pdf'):
                         # pdf
-                        pdf_data.update({file.name : data_extraction.data_pdf(file)})
+                        pdf_data.update({file.name : {'content' : data_extraction.data_pdf(file), 
+                                                      'data_representation':data_representation}})
                         
                     elif file.name.lower().endswith('.txt'):
                         # txt
-                        txt_data.update({file.name : data_extraction.data_txt(file)})
+                        txt_data.update({file.name : {'content' : data_extraction.data_txt(file), 
+                                                      'data_representation':data_representation}})
                         
                     elif file.name.lower().endswith('.docx'):   
                         # docx
-                        docx_data.update({file.name : data_extraction.data_docx(file)})
+                        docx_data.update({file.name : {'content' : data_extraction.data_docx(file), 
+                                                       'data_representation':data_representation}})
                 
                 data_to_update = {}
                 # Saving Loaded Data
@@ -122,3 +134,24 @@ class data_extraction:
             if template_data and st.button('Save', key= 'temp_data'):
                 data_track.info('Template added')
                 st.session_state.data_upload.update({'template_data':template_data})
+    
+    @staticmethod
+    def data_flatning():
+        documents = list()
+        for key, value in st.session_state.data_uploaded['data'].items():
+            for file_key, file_value in value.items():
+                content = file_value.get('content')
+                data_represts = file_value.get('data_representation')
+                file_name = file_key
+
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1000, chunk_overlap = 200)
+            
+            # ----- Creating Object based Document ----- #
+            chunks = text_splitter.create_documents([content])
+
+            for chunk in chunks:
+                # ----- Adding Metatadata into Object based Document ----- #
+                chunk.metadata = {'file_name':file_name, 'data_representation':data_represts}
+                documents.append(chunk)
+        
+        return documents

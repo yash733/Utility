@@ -7,22 +7,19 @@ from langchain_community.vectorstores import FAISS
 from langchain.embeddings import OllamaEmbeddings
 from langchain.memory.chat_memory import BaseChatMemory
 
+
 class Option_page:
     def __init__(self):
         pass
     
     def create_vector_db(self):
         embedding = OllamaEmbeddings(model="nomic-embed-text:v1.5")
-        data = list()
-        for key, value in st.session_state.data_uploaded['data'].items():
-            if isinstance(value, list):
-                data.extend(value)
-            elif isinstance(value, str):
-                data.append(value)
-
+        
+        document = data_extraction.data_flatning()
         # vectorstore will hold important data @files
-        vectore_store = FAISS.from_texts(texts=data, embedding=embedding)
+        vectore_store = FAISS.from_documents(documents=document, embedding=embedding)
         retriever = vectore_store.as_retriever()
+        
         #message history 
         #create chain of stuff document chain and retriver chain
         
