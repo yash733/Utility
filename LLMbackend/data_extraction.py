@@ -5,6 +5,7 @@ import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from config.resume_template import default
 from logger.logg_rep import logging
 
 data_track = logging.getLogger('Data-Flow')
@@ -58,8 +59,8 @@ class data_extraction:
                 data_track.info('file uploaded')
 
                 for file in files:
-                    with st.expander(label=f'What does {file.name} represents ?' ,expanded=True):
-                        data_representation = st.radio(label= 'Select what this document represents',
+                    with st.expander(label=f'What does {file.name} represents ?' ,expanded=True, label_visibility = 'hidden'):
+                        data_representation = st.radio(label= f'What does {file.name} represents ?',
                                                        options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
                                                        index=None,
                                                        key=f"label_{file.name}")
@@ -113,9 +114,19 @@ class data_extraction:
                 with st.expander('Loaded Data', expanded = True):
                     # log
                     data_track.info(f'data loaded in session_state')
-                    st.session_state.data_uploaded.update({'data':{'text_data':text_data}})
+                    st.session_state.data_uploaded.update({'data':{
+                                                                'text_input':{
+                                                                    'text':{
+                                                                        'content':text_data}}}})
+                    
                     text = st.session_state.data_uploaded['data'].get('text_data')
-                    st.write(text[:500])
+                    st.write(text)
+
+                with st.expander(label='What does input text represents ?' ,expanded=True, label_visibility = 'hidden'):
+                    data_representation = st.radio(label= 'Select what this data represents',
+                                                    options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
+                                                    index=None,
+                                                    key=f"label_txt_input")
 
         else:
             st.warning('Kindly select an Option')
@@ -130,7 +141,7 @@ class data_extraction:
                 st.session_state.data_uploaded.update({'job_description':jd_data})
                 data_track.info('JD added')
 
-            template_data = st.text_area('Template description')
+            template_data = st.text_area('Resume Template', value = default())
             if template_data and st.button('Save', key= 'temp_data'):
                 data_track.info('Template added')
                 st.session_state.data_upload.update({'template_data':template_data})

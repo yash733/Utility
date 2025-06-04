@@ -3,25 +3,9 @@ from LLMbackend.data_extraction import data_extraction
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
-from langchain_community.vectorstores import FAISS
-from langchain.embeddings import OllamaEmbeddings
-from langchain.memory.chat_memory import BaseChatMemory
-
-
 class Option_page:
     def __init__(self):
-        pass
-    
-    def create_vector_db(self):
-        embedding = OllamaEmbeddings(model="nomic-embed-text:v1.5")
-        
-        document = data_extraction.data_flatning()
-        # vectorstore will hold important data @files
-        vectore_store = FAISS.from_documents(documents=document, embedding=embedding)
-        retriever = vectore_store.as_retriever()
-        
-        #message history 
-        #create chain of stuff document chain and retriver chain
+        pass  
         
     def create_resume(self):
         st.subheader('Create-Improve Resume')
@@ -31,7 +15,8 @@ class Option_page:
         if st.button(label='Next', key = 'LLM_Start'):
             # LLM Integration
             user_requirement = st.chat_input('Enter your requirement')
-            pass
+            st.session_state.data_upload.update({user_requirement})
 
     def create_cv(self):
         pass
+

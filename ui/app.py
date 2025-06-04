@@ -13,6 +13,9 @@ if 'user_selection' not in st.session_state:
 
 if 'data_uploaded' not in st.session_state:
     st.session_state.data_uploaded = {}
+
+if 'ouput_data' not in st.session_state:
+    st.session_state.output_data = {}
     
 
 if not st.session_state.user_selection.get('llm_model'):
