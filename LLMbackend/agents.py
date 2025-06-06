@@ -6,7 +6,6 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import creacreate_retrieval_chain
 from langchain_core.messages.utils import trim_messages
 from langgraph.graph import START, END, StateGraph
-from langchain.output_parsers import PydanticOutputParser
 from langgraph.checkpoint.memory import MemorySaver
 
 from data_extraction import data_extraction
