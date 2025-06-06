@@ -5,12 +5,13 @@ from langchain.embeddings import OllamaEmbeddings
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import creacreate_retrieval_chain
 from langchain_core.messages.utils import trim_messages
-from langgraph.graphs import START, END, StateGraph
+from langgraph.graph import START, END, StateGraph
 from langchain.output_parsers import PydanticOutputParser
+from langgraph.checkpoint.memory import MemorySaver
 
 from data_extraction import data_extraction
 from config.resume_template import default
-from config.variable_validation import State, response_analysis
+from config.variable_validation import State, response_analysis, expert_review_resume
 
 class agents:
     model = st.session_state.user_selection['llm_model']
@@ -108,24 +109,33 @@ class agents:
     def user_input_interrupt(state: State):
         return State
     
-    def review_agent(state: State):
-        res = ChatPromptTemplate.from_messages([{'role':'system',
-                                                 'content':'You are an '}])
-        return {'final_resume': res.content}
-    
-    def if_reloop_resume():
-        pass
+    @classmethod
+    def review_agent(cls, state: State):
+        prompt = ChatPromptTemplate.from_messages([{'role':'system',
+                                                 'content':'You are an hiring expert and have gained exceptional level of experiance in candiate hiring for many companies'}])
+        
+        model = cls.model.with_structured_output(expert_review_resume)
+        res = model.invoke(prompt)
+        if res.sentiment == 'Perfect':
+            return {'final_resume': res.resume}
+            
+        elif res.sentiment == 'Improvement Required':
+            return {'suggestion': res.suggestion, 'sentiment' : res.sentiment}
+            
+    def rout_after_reviewagent(state: State):
+        if state.get('final_resume'):
+            return END
+        elif state.get('sentiment') == 'Improvement Required':
+            return 'Re-run'
     
     @classmethod
     def sentiment(cls, state: State):
-        parser = PydanticOutputParser(response_analysis)
-        instructions = parser.get_format_instructions()
-
-        prompt = (ChatPromptTemplate.from_messages([{'role': 'system', 
-                                                                  'content': f'''{instructions}
-                                                                  Analyze the following text and respond with the sentiment:
-                                                                    {state['user_request']}'''}]))
-        res = cls.model.invoke(prompt)
+        prompt = ChatPromptTemplate.from_messages([{'role': 'system', 
+                                                    'content': f'''
+                                                        Analyze the following text and respond if improvement is required or not:
+                                                            {state['user_request']}'''}])
+        model = cls.model.with_structured_output(response_analysis)
+        res = model.invoke(prompt)
         if res.sentiment == 'Perfect':
             return 'Perfect'
         elif res.sentiment == 'Improvement Required':
@@ -133,7 +143,7 @@ class agents:
 
 
     @classmethod
-    def graph(cls, state:State):
+    def resume_graph(cls, state:State):
         _graph = (
             StateGraph(state)
             .add_node('Create Resume', cls.create_resume)
@@ -143,7 +153,7 @@ class agents:
             .add_edge(START, 'Create Resume')
             .add_edge('Create Resume', 'User Feedback')
             .add_edge('User Feedback', cls.sentiment, {'Perfect': 'Review Expert', 'Improvement Required': 'Create Resume'})
-            .add_edge('Review Expert',END)
-            .compile(interrupt_before=['User Feedback'])
+            .add_edge('Review Expert', cls.rout_after_reviewagent, {END : END, 'Re-run' : 'Create Resume'})
+            .compile(interrupt_before=['User Feedback'], checkpointer = MemorySaver())
         )
         return _graph
