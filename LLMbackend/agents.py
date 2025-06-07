@@ -3,7 +3,7 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.vectorstores import FAISS
 from langchain.embeddings import OllamaEmbeddings
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import creacreate_retrieval_chain
+from langchain.chains import create_retrieval_chain
 from langchain_core.messages.utils import trim_messages
 from langgraph.graph import START, END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
@@ -12,8 +12,28 @@ from data_extraction import data_extraction
 from config.resume_template import default
 from config.variable_validation import State, response_analysis, expert_review_resume
 
+class vector_db:
+    _vector_db = None
+
+    @classmethod
+    def create_vector_db(cls, model, prompt):
+        if cls._vector_db == None:
+            embedding = OllamaEmbeddings(model="nomic-embed-text:v1.5")
+            
+            reduced_document = data_extraction.data_flatning()
+            # vectorstore will hold important data @files
+            cls._vectore_db = FAISS.from_documents(documents=reduced_document, embedding=embedding)
+    
+    @classmethod
+    def get_retrieval_chain(cls, model, prompt):
+        retriever = cls._vectore_db.as_retriever()
+        doc_chain = create_stuff_documents_chain(model, prompt)
+        return create_retrieval_chain(doc_chain, retriever)
+    
+
 class agents:
     model = st.session_state.user_selection['llm_model']
+    
     # ======================================== #
     @classmethod
     def history_trimmer(cls, token_size = 500):
@@ -27,24 +47,13 @@ class agents:
         )
         return trimmer
     
-    def create_vector_db(model, prompt):
-        embedding = OllamaEmbeddings(model="nomic-embed-text:v1.5")
-        
-        reduced_document = data_extraction.data_flatning()
-        # vectorstore will hold important data @files
-        vectore_store = FAISS.from_documents(documents=reduced_document, embedding=embedding)
-        retriever = vectore_store.as_retriever()
-
-        doc_chain = create_stuff_documents_chain(model, prompt)
-        relevant_info = creacreate_retrieval_chain(doc_chain, retriever)
-        return relevant_info
     # ========================================= #
 
     @classmethod
     def create_resume(cls, state: State):
-        if not state.get('user_request'):
-            prompt = ChatPromptTemplate.from_messages([{
-                'role':'system',
+        # === First RUN === #
+        if st.session_state.state == 'START': # State tracking
+            system = {'role':'system',
                 'content':'''
                 You are an expert resume writer and ATS (Applicant Tracking System) specialist.
 
@@ -71,68 +80,130 @@ class agents:
                     - Highlight achievements and relevant experience.
                     - Use bullet points where appropriate.
 
-                Generate the complete resume that can be converted to pdf and directly be send to recruter.'''}])
-           
-            input_message_history = False
-
-        if state.get('user_request'):
-            prompt = ChatPromptTemplate.from_messages([{'role':'user',
-                        'content':'''
-                        Analyze user query and make changes to :
-                            {user_query}
-                            '''},
-                            MessagesPlaceholder(variable_name="chat_history")])
+                Generate the complete resume that can be converted to pdf and directly be send to recruter.'''}
             
-            input_message_history = True
+            prompt = ChatPromptTemplate.from_messages([system])
+           
+            input_data = {'requirement' : State.get('user_request'),
+                          'job_description' : st.session_state.data_upload['job_description'],
+                          'template' : default()}
 
-        # featching relevant doocuments
-        retriever = cls.create_vector_db(cls.model, prompt)
+        # === Loop RUN === #
+        if st.session_state.state == 'Interrupt':
+            system = {'role':'system',
+                        'content':'''
+                        Changes requested by User:
+                            {user_suggestion}
 
-        input_data = {
-            'requirement' : st.session_state.data_upload['user_requirement'],
-            'job_description' : st.session_state.data_upload['job_description'],
-            'template' : default(),
-            }
-        # trim message
-        if input_message_history:
+                        Current Resume:
+                            {resume}
+
+                        Job Description:
+                            {jobdesc}
+
+                        Analyze user query carefully and make the requested changes to the resume, while being relevent to Job Description,
+                        also remember to make it ready to use, by conveing the data directly to pdf format.
+                        '''}
+            
+            prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
+            
+            # Trim Message
             trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
-            input_data['chat_history'] = trimmed_history
+            input_data = {'user_suggestion' : State.get('user_suggestion'),
+                          'resume' : State.get('resume'),
+                          'jobdesc' : st.session_state.data_upload['job_description'],
+                          'chat_history' : trimmed_history}
+            
+        # === Loop RUN === #
+        if st.session_state.state == 'Agent':
+            system = {'role':'system',
+                    'content': '''
+                    Context:
+                        {context}
+
+                    Changes suggested by Hiring Expert:
+                        {expert}
+                        
+                    Current Resume:
+                        {resume}
+                    
+                    Make necesary changes to reume, following the suggestion/instruction provided by Hiring Expert, you can access relevant information from context.
+                    '''}
+            
+            prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
+            # Trim Message
+            trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
+            input_data = {'expert' : expert_review_resume.get('suggestion'),
+                          'resume' : State.get('resume'),
+                          'chat_history' : trimmed_history}
+            
+        # featching relevant doocuments
+        retrieval_chain = vector_db.get_retrieval_chain(cls.model, prompt)            
 
         # executing
-        res = retriever.invoke(input_data)
-        st.session_state.ouput_data['message_data'].append(prompt)
-        st.session_state.ouput_data['message_data'].append({'role':'assistant', 'content':res.content})
+        result = retrieval_chain.invoke(input_data)
+        st.session_state.ouput_data['message_data'].append(system)
+        st.session_state.ouput_data['message_data'].append({'role':'assistant', 'content':result.content})
 
-        return {'resume': res.content}
+        return {'resume': result.content}
     
+    # -----------------------------------------------
     def user_input_interrupt(state: State):
+        st.session_state.state = 'Interrupt' # State tracking
         return State
     
+    # -----------------------------------------------
     @classmethod
     def review_agent(cls, state: State):
-        prompt = ChatPromptTemplate.from_messages([{'role':'system',
-                                                 'content':'You are an hiring expert and have gained exceptional level of experiance in candiate hiring for many companies'}])
+        st.session_state.state = 'Agent' # State tracking
+
+        system = {'role':'system',
+                'content':'''
+                More Information:
+                    {context}
+
+                Resume:
+                    {resume}
+
+                Job Description:
+                    {jobdesc}
+
+                You are an hiring expert and have gained exceptional level of experiance in hiring most suitable candidates.
+                Analyze the resume and provide your take allowing the resume more job description centric.'''}
         
-        model = cls.model.with_structured_output(expert_review_resume)
-        res = model.invoke(prompt)
+        prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name='chat_history')])
+
+        retrieval_chain = vector_db.get_retrieval_chain(cls.model, prompt)
+
+        input_data = {'resume' : State.get('resume'),
+                      'jobdesc' : st.session_state.data_upload['job_description'],
+                      'context' : retrieval_chain}
+        
+        model = retrieval_chain.with_structured_output(expert_review_resume)
+        res = model.invoke(input_data)
+
         if res.sentiment == 'Perfect':
             return {'final_resume': res.resume}
             
         elif res.sentiment == 'Improvement Required':
-            return {'suggestion': res.suggestion, 'sentiment' : res.sentiment}
-            
+            return {'suggestion': res.suggestion, 
+                    'sentiment' : res.sentiment, 
+                    'resume' : res.resume}
+        
+    # -----------------------------------------------            
     def rout_after_reviewagent(state: State):
         if state.get('final_resume'):
             return END
         elif state.get('sentiment') == 'Improvement Required':
             return 'Re-run'
     
+    # -----------------------------------------------
     @classmethod
     def sentiment(cls, state: State):
         prompt = ChatPromptTemplate.from_messages([{'role': 'system', 
                                                     'content': f'''
                                                         Analyze the following text and respond if improvement is required or not:
-                                                            {state['user_request']}'''}])
+                                                            {state['user_suggestion']}'''}])
         model = cls.model.with_structured_output(response_analysis)
         res = model.invoke(prompt)
         if res.sentiment == 'Perfect':
@@ -141,8 +212,10 @@ class agents:
             return 'Improvement Required'
 
 
+    # *********************************************** #
+
     @classmethod
-    def resume_graph(cls, state:State):
+    def resume_graph(cls, state):
         _graph = (
             StateGraph(state)
             .add_node('Create Resume', cls.create_resume)

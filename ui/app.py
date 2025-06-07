@@ -16,8 +16,13 @@ if 'data_uploaded' not in st.session_state:
 
 if 'ouput_data' not in st.session_state:
     st.session_state.output_data = {}
-    
 
+if 'config' not in st.session_state:
+    st.session_state.config = {'configurable':{'thread_id': 'user-1'}}
+
+if 'state' not in st.session_state:
+    st.session_state.state = 'START'
+# ----- ----- #
 if not st.session_state.user_selection.get('llm_model'):
     sidebar()
 
