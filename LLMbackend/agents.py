@@ -16,7 +16,7 @@ class vector_db:
     _vector_db = None
 
     @classmethod
-    def create_vector_db(cls, model, prompt):
+    def create_vector_db(cls):
         if cls._vector_db == None:
             embedding = OllamaEmbeddings(model="nomic-embed-text:v1.5")
             
@@ -173,14 +173,18 @@ class agents:
         
         prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name='chat_history')])
 
-        retrieval_chain = vector_db.get_retrieval_chain(cls.model, prompt)
+        model = cls.model.with_structured_output(expert_review_resume)
+        retrieval_chain = vector_db.get_retrieval_chain(model, prompt)
 
+        # trimme message history
+        trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
+        
         input_data = {'resume' : State.get('resume'),
                       'jobdesc' : st.session_state.data_upload['job_description'],
-                      'context' : retrieval_chain}
-        
-        model = retrieval_chain.with_structured_output(expert_review_resume)
-        res = model.invoke(input_data)
+                      'chat_history' : trimmed_history
+                      }
+                
+        res = retrieval_chain.invoke(input_data)
 
         if res.sentiment == 'Perfect':
             return {'final_resume': res.resume}
