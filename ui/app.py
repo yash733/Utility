@@ -2,9 +2,6 @@ import streamlit as st
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
-from config.config import Config
-from sidebar import sidebar, chack_option
-
 st.title("🎯 Personal Utility Tools")
 
 # ----- Session States ----- #
@@ -22,7 +19,10 @@ if 'config' not in st.session_state:
 
 if 'state' not in st.session_state:
     st.session_state.state = 'START'
+
 # ----- ----- #
+from sidebar import sidebar, chack_option
+
 if not st.session_state.user_selection.get('llm_model'):
     sidebar()
 

@@ -1,3 +1,6 @@
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
+
 import streamlit as st
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.vectorstores import FAISS
@@ -8,7 +11,7 @@ from langchain_core.messages.utils import trim_messages
 from langgraph.graph import START, END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 
-from data_extraction import data_extraction
+from LLMbackend.data_extraction import data_extraction
 from config.resume_template import default
 from config.variable_validation import State, response_analysis, expert_review_resume
 
@@ -32,7 +35,7 @@ class vector_db:
     
 
 class agents:
-    model = st.session_state.user_selection['llm_model']
+    model = st.session_state.user_selection.get('llm_model')
     
     # ======================================== #
     @classmethod
@@ -53,6 +56,7 @@ class agents:
     def create_resume(cls, state: State):
         # === First RUN === #
         if st.session_state.state == 'START': # State tracking
+            st.session_state.state = 'Create_Resume'
             system = {'role':'system',
                 'content':'''
                 You are an expert resume writer and ATS (Applicant Tracking System) specialist.
@@ -84,8 +88,8 @@ class agents:
             
             prompt = ChatPromptTemplate.from_messages([system])
            
-            input_data = {'requirement' : State.get('user_request'),
-                          'job_description' : st.session_state.data_upload['job_description'],
+            input_data = {'requirement' : state.get('user_request'),
+                          'job_description' : st.session_state.data_uploaded['job_description'],
                           'template' : default()}
 
         # === Loop RUN === #
@@ -99,7 +103,7 @@ class agents:
                             {resume}
 
                         Job Description:
-                            {jobdesc}
+                            {job_description}
 
                         Analyze user query carefully and make the requested changes to the resume, while being relevent to Job Description,
                         also remember to make it ready to use, by conveing the data directly to pdf format.
@@ -111,7 +115,7 @@ class agents:
             trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
             input_data = {'user_suggestion' : State.get('user_suggestion'),
                           'resume' : State.get('resume'),
-                          'jobdesc' : st.session_state.data_upload['job_description'],
+                          'job_description' : st.session_state.data_uploaded['job_description'],
                           'chat_history' : trimmed_history}
             
         # === Loop RUN === #
@@ -166,7 +170,7 @@ class agents:
                     {resume}
 
                 Job Description:
-                    {jobdesc}
+                    {job_description}
 
                 You are an hiring expert and have gained exceptional level of experiance in hiring most suitable candidates.
                 Analyze the resume and provide your take allowing the resume more job description centric.'''}
@@ -178,21 +182,24 @@ class agents:
 
         # trimme message history
         trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
-        
-        input_data = {'resume' : State.get('resume'),
-                      'jobdesc' : st.session_state.data_upload['job_description'],
+
+        input_data = {'resume' : state.get('resume'),
+                      'job_description' : st.session_state.data_uploaded['job_description'],
                       'chat_history' : trimmed_history
                       }
                 
-        res = retrieval_chain.invoke(input_data)
+        result = retrieval_chain.invoke(input_data)
 
-        if res.sentiment == 'Perfect':
-            return {'final_resume': res.resume}
+        st.session_state.ouput_data['message_data'].append(system)
+        st.session_state.ouput_data['message_data'].append({'role':'assistant', 'content':result.content})
+
+        if result.sentiment == 'Perfect':
+            return {'final_resume': result.resume}
             
-        elif res.sentiment == 'Improvement Required':
-            return {'suggestion': res.suggestion, 
-                    'sentiment' : res.sentiment, 
-                    'resume' : res.resume}
+        elif result.sentiment == 'Improvement Required':
+            return {'suggestion': result.suggestion, 
+                    'sentiment' : result.sentiment, 
+                    'resume' : result.resume}
         
     # -----------------------------------------------            
     def rout_after_reviewagent(state: State):
@@ -217,7 +224,49 @@ class agents:
 
 
     # *********************************************** #
-
+    '''
+    +--------+
+    | Start  |
+    +--------+
+        |
+        v
+    +-------------+
+    | 1st Draft   |
+    +-------------+
+          |
+          v
+    +-------------+
+    |   Review    |
+    +-------------+
+        |       |
+        |       v
+        |     +--------+
+        |     | Poor   |
+        |     +--------+
+        |         |
+        |         v
+        |     +-------------+
+        |     | 1st Draft   |
+        |     +-------------+
+        v
+    +------------------+
+    | Expert Review    |
+    +------------------+
+        |         |
+        |         v
+        |     +--------+
+        |     | Poor   |         Note: As LLMs are not that reliable 
+        |     +--------+     *"Not Taking and keeping human in the loop"*
+        |         |
+        |         v
+        |     +-------------+
+        |     | 1st Draft   |
+        |     +-------------+
+        v
+    +--------+
+    |  End   |
+    +--------+
+    '''
     @classmethod
     def resume_graph(cls, state):
         _graph = (
@@ -228,8 +277,8 @@ class agents:
 
             .add_edge(START, 'Create Resume')
             .add_edge('Create Resume', 'User Feedback')
-            .add_edge('User Feedback', cls.sentiment, {'Perfect': 'Review Expert', 'Improvement Required': 'Create Resume'})
-            .add_edge('Review Expert', cls.rout_after_reviewagent, {END : END, 'Re-run' : 'Create Resume'})
+            .add_conditional_edges('User Feedback', cls.sentiment, {'Perfect': 'Review Expert', 'Improvement Required': 'Create Resume'})
+            .add_conditional_edges('Review Expert', cls.rout_after_reviewagent, {END : END, 'Re-run' : 'Create Resume'})
             .compile(interrupt_before=['User Feedback'], checkpointer = MemorySaver())
         )
         return _graph

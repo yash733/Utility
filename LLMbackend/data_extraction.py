@@ -3,6 +3,7 @@ import docx
 import streamlit as st
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
+
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from config.resume_template import default
@@ -59,29 +60,29 @@ class data_extraction:
                 data_track.info('file uploaded')
 
                 for file in files:
-                    with st.expander(label=f'What does {file.name} represents ?' ,expanded=True, label_visibility = 'hidden'):
-                        data_representation = st.radio(label= f'What does {file.name} represents ?',
+                    with st.expander(label=f'What does {file.name} represents ?' ,expanded=True):
+                        data_representation = st.radio(label= "",
                                                        options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
                                                        index=None,
                                                        key=f"label_{file.name}")
                         if not data_representation:
                             st.stop()
-
+                    
                     if file.name.lower().endswith('.pdf'):
                         # pdf
                         pdf_data.update({file.name : {'content' : data_extraction.data_pdf(file), 
-                                                      'data_representation':data_representation}})
+                                                    'data_representation':data_representation}})
                         
                     elif file.name.lower().endswith('.txt'):
                         # txt
                         txt_data.update({file.name : {'content' : data_extraction.data_txt(file), 
-                                                      'data_representation':data_representation}})
+                                                    'data_representation':data_representation}})
                         
                     elif file.name.lower().endswith('.docx'):   
                         # docx
                         docx_data.update({file.name : {'content' : data_extraction.data_docx(file), 
-                                                       'data_representation':data_representation}})
-                
+                                                    'data_representation':data_representation}})
+            
                 data_to_update = {}
                 # Saving Loaded Data
                 if pdf_data:
@@ -104,7 +105,7 @@ class data_extraction:
                 st.stop()
         
         elif option == 'Add data in text box':
-            text_data = st.text_area(label='Enter Content for creating/improving Resume')
+            text_data = st.text_area(label='Enter Content for creating Resume')
             data_track.info('Add data in text box')
 
             if text_data:
@@ -122,7 +123,7 @@ class data_extraction:
                     text = st.session_state.data_uploaded['data'].get('text_data')
                     st.write(text)
 
-                with st.expander(label='What does input text represents ?' ,expanded=True, label_visibility = 'hidden'):
+                with st.expander(label='What does input text represents ?' ,expanded=True):
                     data_representation = st.radio(label= 'Select what this data represents',
                                                     options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
                                                     index=None,
@@ -144,7 +145,7 @@ class data_extraction:
             template_data = st.text_area('Resume Template', value = default())
             if template_data and st.button('Save', key= 'temp_data'):
                 data_track.info('Template added')
-                st.session_state.data_upload.update({'template_data':template_data})
+                st.session_state.data_uploaded.update({'template_data':template_data})
     
     @staticmethod
     def data_flatning():
