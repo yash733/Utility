@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 import streamlit as st
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.vectorstores import FAISS
-from langchain.embeddings import OllamaEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 from langchain_core.messages.utils import trim_messages
@@ -29,6 +29,8 @@ class vector_db:
     
     @classmethod
     def get_retrieval_chain(cls, model, prompt):
+        vector_db.create_vector_db()
+        
         retriever = cls._vectore_db.as_retriever()
         doc_chain = create_stuff_documents_chain(model, prompt)
         return create_retrieval_chain(doc_chain, retriever)
@@ -89,7 +91,7 @@ class agents:
             prompt = ChatPromptTemplate.from_messages([system])
            
             input_data = {'requirement' : state.get('user_request'),
-                          'job_description' : st.session_state.data_uploaded['job_description'],
+                          'job_description' : st.session_state.data_uploaded.get('job_description'),
                           'template' : default()}
 
         # === Loop RUN === #
@@ -115,7 +117,7 @@ class agents:
             trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
             input_data = {'user_suggestion' : State.get('user_suggestion'),
                           'resume' : State.get('resume'),
-                          'job_description' : st.session_state.data_uploaded['job_description'],
+                          'job_description' : st.session_state.data_uploaded.get('job_description'),
                           'chat_history' : trimmed_history}
             
         # === Loop RUN === #
@@ -170,7 +172,7 @@ class agents:
                     {resume}
 
                 Job Description:
-                    {job_description}
+                    {job_description if job_description else 'No job description is provied by user end'}
 
                 You are an hiring expert and have gained exceptional level of experiance in hiring most suitable candidates.
                 Analyze the resume and provide your take allowing the resume more job description centric.'''}
@@ -184,7 +186,7 @@ class agents:
         trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
 
         input_data = {'resume' : state.get('resume'),
-                      'job_description' : st.session_state.data_uploaded['job_description'],
+                      'job_description' : st.session_state.data_uploaded.get('job_description'),
                       'chat_history' : trimmed_history
                       }
                 

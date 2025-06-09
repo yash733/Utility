@@ -41,6 +41,9 @@ class data_extraction:
 
     @staticmethod
     def resume_data_extraction():
+        if st.session_state.get('data_loaded'):
+            return
+        
         data_to_update = {}
         pdf_data, txt_data, docx_data = {}, {}, {}
 
@@ -61,7 +64,7 @@ class data_extraction:
 
                 for file in files:
                     with st.expander(label=f'What does {file.name} represents ?' ,expanded=True):
-                        data_representation = st.radio(label= "",
+                        data_representation = st.radio(label= "d", label_visibility = 'collapsed',
                                                        options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
                                                        index=None,
                                                        key=f"label_{file.name}")
@@ -72,17 +75,25 @@ class data_extraction:
                         # pdf
                         pdf_data.update({file.name : {'content' : data_extraction.data_pdf(file), 
                                                     'data_representation':data_representation}})
-                        
+                        # log
+                        data_track.info('Updated pdf_data')
+
                     elif file.name.lower().endswith('.txt'):
                         # txt
                         txt_data.update({file.name : {'content' : data_extraction.data_txt(file), 
                                                     'data_representation':data_representation}})
-                        
+                        # log
+                        data_track.info('Updated txt_data')
+
                     elif file.name.lower().endswith('.docx'):   
                         # docx
                         docx_data.update({file.name : {'content' : data_extraction.data_docx(file), 
                                                     'data_representation':data_representation}})
-            
+                        # log
+                        data_track.info('Updated docx_data')
+                    
+                    # else: Not needed as no other file format can be uploaded
+
                 data_to_update = {}
                 # Saving Loaded Data
                 if pdf_data:
@@ -99,6 +110,7 @@ class data_extraction:
                     # ----- Update Session_State with extracted data ----- #
                     st.session_state.data_uploaded.update({'data':data_to_update})
                     st.write(st.session_state.data_uploaded['data'])
+                st.session_state['data_loaded'] = True
                         
             else:
                 st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
@@ -134,16 +146,18 @@ class data_extraction:
             st.stop()
 
         with st.expander('Load Meta Data', expanded=True):
-            #log 
+            # log 
             data_track.info('Meta Data')
 
             jd_data = st.text_area('Job Discription')
             if jd_data and st.button('Save', key = 'Jd_data'):
                 st.session_state.data_uploaded.update({'job_description':jd_data})
+                # log
                 data_track.info('JD added')
 
             template_data = st.text_area('Resume Template', value = default())
             if template_data and st.button('Save', key= 'temp_data'):
+                # log
                 data_track.info('Template added')
                 st.session_state.data_uploaded.update({'template_data':template_data})
     
@@ -157,13 +171,19 @@ class data_extraction:
                 file_name = file_key
 
             text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1000, chunk_overlap = 200)
-            
+            # log
+            data_track.info('Data divided into chunks')
+
             # ----- Creating Object based Document ----- #
             chunks = text_splitter.create_documents([content])
+            # log
+            data_track.info('converted uploaded data into object type')
 
             for chunk in chunks:
                 # ----- Adding Metatadata into Object based Document ----- #
                 chunk.metadata = {'file_name':file_name, 'data_representation':data_represts}
                 documents.append(chunk)
+            # log 
+            data_track.info('Attached Meta data to each chunk of data')
         
         return documents

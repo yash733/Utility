@@ -31,7 +31,6 @@ class Option_page:
                 # ===== START ===== #
                 with st.spinner('Processing'):
                     st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
-            st.rerun()
 
         if st.session_state.state == 'Interrupt':
             # After Interrupt -->

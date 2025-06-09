@@ -6,6 +6,11 @@ from config.config import Config  # Extract UI Configuration
 from config.model import Model  # Initialize Model from groq or ollama
 from LLMbackend.llm import Option_page  # Go to selected option function for processing
 
+from logger.logg_rep import logging
+
+debug = logging.getLogger('Side-Bar')
+debug.setLevel(logging.DEBUG)
+
 def sidebar():
     with st.sidebar:
         st.session_state.user_selection.update({'option_selected': st.selectbox(label='How can I help you today ?', options=Config().get_options())})
@@ -19,19 +24,38 @@ def sidebar():
 
                 if st.session_state.user_selection['api_key'] and st.session_state.user_selection['model_name'] and st.button(label='Proceed', key='Satge1 Groq'):
                     st.session_state.user_selection.update({'llm_model':Model.get_groq(st.session_state.user_selection['api_key'], st.session_state.user_selection['model_name'])})
-                    
+
+                    # log
+                    debug.info('GROQ - ',st.session_state.user_selection.get('llm_model')) 
+                
                 else:
                     st.warning("⚠️ Please enter your GROQ API key to proceed. Don't have? refer : https://console.groq.com/keys ")
+
+                    # log
+                    debug.error('Groq No API KEY')
 
             elif provider == 'OLLAMA':
                 # -- provider -- model -- #
                 st.session_state.user_selection.update({'model':'ollama', 'model_name':st.selectbox(label='Ollama Model', options=Config().get_ollama_model())})
 
                 if st.session_state.user_selection['model_name'] and st.button(label='Proceed', key='Stage1 Ollama'):
-                    st.session_state.user_selection.update({'llm_model':Model.get_ollama(st.session_state.user_selection['model_name'])})
+                    try:
+                        st.session_state.user_selection.update({'llm_model':Model.get_ollama(st.session_state.user_selection['model_name'])})
+
+                        model = st.session_state.user_selection.get('llm_model')
+                        res = model.invoke('hello')
+                    
+                    except Exception as e:
+                        debug.info('Null Ollama')
+                        st.warning('Model')
+
+                    # log 
+                    # debug.info('Ollama - ',st.session_state.user_selection.get('model_name'), st.session_state.user_selection.get('llm_model'))
                     
                 else:
                     st.warning("⚠️ Select a Model")
+
+                    debug.error('Ollama Unable to form connection')
         else:
             st.warning("⚠️ Select an Option to Start")
 
