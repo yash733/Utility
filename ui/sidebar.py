@@ -23,11 +23,19 @@ def sidebar():
                                                          'model_name':st.selectbox(label='Groq Model', options=Config().get_groq_model())})
 
                 if st.session_state.user_selection['api_key'] and st.session_state.user_selection['model_name'] and st.button(label='Proceed', key='Satge1 Groq'):
-                    st.session_state.user_selection.update({'llm_model':Model.get_groq(st.session_state.user_selection['api_key'], st.session_state.user_selection['model_name'])})
+                    try : 
+                        with st.spinner('Testing Connection'):
+                            st.session_state.user_selection.update({'llm_model':Model.get_groq(st.session_state.user_selection['api_key'], st.session_state.user_selection['model_name'])})
 
-                    # log
-                    debug.info('GROQ - ',st.session_state.user_selection.get('llm_model')) 
-                
+                            model = st.session_state.user_selection.get('llm_model')
+                            res = model.invoke('hello')
+                    
+                        # log
+                        debug.info('GROQ - ',st.session_state.user_selection.get('llm_model')) 
+                    
+                    except Exception as e:
+                        debug.error(f'Un-able establish connection with Groq - \n{e}')
+
                 else:
                     st.warning("⚠️ Please enter your GROQ API key to proceed. Don't have? refer : https://console.groq.com/keys ")
 
@@ -42,12 +50,12 @@ def sidebar():
                     try:
                         st.session_state.user_selection.update({'llm_model':Model.get_ollama(st.session_state.user_selection['model_name'])})
 
-                        model = st.session_state.user_selection.get('llm_model')
-                        res = model.invoke('hello')
+                        with st.spinner('Testing Connection'):
+                            model = st.session_state.user_selection.get('llm_model')
+                            res = model.invoke('hello')
                     
                     except Exception as e:
-                        debug.info('Null Ollama')
-                        st.warning('Model')
+                        debug.info('Ollama Model empty, object not created')
 
                     # log 
                     # debug.info('Ollama - ',st.session_state.user_selection.get('model_name'), st.session_state.user_selection.get('llm_model'))

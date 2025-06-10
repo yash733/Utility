@@ -25,18 +25,18 @@ class data_extraction:
         text = ''
         for page in raw_data.pages:
             text += page.extract_text()
-        data_track.info(f'pdf data {text} ')
+        data_track.info(f'pdf data {text} ') # log
         return text
     
     def data_txt(file):
         text = file.read().decode("utf-8")
-        data_track.info(f'txt data {text}')
+        data_track.info(f'txt data {text}') # log
         return text
 
     def data_docx(file):
         doc = docx.Document(file)
         text = "\n".join([para.text for para in doc.paragraph])
-        data_track.info(f'docx data {text}')
+        data_track.info(f'docx data {text}') # log
         return text
 
     @staticmethod
@@ -51,7 +51,7 @@ class data_extraction:
         option = st.radio(label='Select Input format', options = ['Upload Existing Resume or Content', 'Add data in text box'])
         if option == 'Upload Existing Resume or Content':
             # log
-            data_track.info('Upload Existing Resume or Content')
+            data_track.info('Upload Existing Resume or Content') # log
 
             files = st.file_uploader(label='Enter your Resumme to Impprove or To create one add file with content', 
                                      type=['pdf','txt','docx'], accept_multiple_files = True)
@@ -113,6 +113,7 @@ class data_extraction:
                 st.session_state['data_loaded'] = True
                         
             else:
+                data_track.error('No file uploaded')
                 st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
                 st.stop()
         
@@ -149,17 +150,18 @@ class data_extraction:
             # log 
             data_track.info('Meta Data')
 
-            jd_data = st.text_area('Job Discription')
-            if jd_data and st.button('Save', key = 'Jd_data'):
-                st.session_state.data_uploaded.update({'job_description':jd_data})
-                # log
-                data_track.info('JD added')
-
+            jd_data = st.text_input('Job Discription')
             template_data = st.text_area('Resume Template', value = default())
-            if template_data and st.button('Save', key= 'temp_data'):
-                # log
-                data_track.info('Template added')
-                st.session_state.data_uploaded.update({'template_data':template_data})
+            st.stop()
+            if st.button('Save', key = 'Meta Data'):
+                if jd_data:
+                    st.session_state.data_uploaded.update({'job_description':jd_data})
+                    # log
+                    data_track.info('JD added')
+                if template_data:
+                    # log
+                    data_track.info('Template added')
+                    st.session_state.data_uploaded.update({'template_data':template_data})
     
     @staticmethod
     def data_flatning():
