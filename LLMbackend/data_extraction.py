@@ -75,22 +75,19 @@ class data_extraction:
                         # pdf
                         pdf_data.update({file.name : {'content' : data_extraction.data_pdf(file), 
                                                     'data_representation':data_representation}})
-                        # log
-                        data_track.info('Updated pdf_data')
+                        data_track.info('Updated pdf_data') # log
 
                     elif file.name.lower().endswith('.txt'):
                         # txt
                         txt_data.update({file.name : {'content' : data_extraction.data_txt(file), 
                                                     'data_representation':data_representation}})
-                        # log
-                        data_track.info('Updated txt_data')
+                        data_track.info('Updated txt_data') # log
 
                     elif file.name.lower().endswith('.docx'):   
                         # docx
                         docx_data.update({file.name : {'content' : data_extraction.data_docx(file), 
                                                     'data_representation':data_representation}})
-                        # log
-                        data_track.info('Updated docx_data')
+                        data_track.info('Updated docx_data') # log
                     
                     # else: Not needed as no other file format can be uploaded
 
@@ -104,13 +101,11 @@ class data_extraction:
                     data_to_update['docx_data'] = docx_data
                 
                 with st.expander('Loaded Data', expanded = False):
-                    #log
-                    data_track.info(f'data loaded in session_state')
-
                     # ----- Update Session_State with extracted data ----- #
-                    st.session_state.data_uploaded.update({'data':data_to_update})
+                    st.session_state.data_uploaded['data'] = data_to_update
+                    data_track.info(f'data loaded in session_state') # log
+
                     st.write(st.session_state.data_uploaded['data'])
-                st.session_state['data_loaded'] = True
                         
             else:
                 data_track.error('No file uploaded')
@@ -119,50 +114,58 @@ class data_extraction:
         
         elif option == 'Add data in text box':
             text_data = st.text_area(label='Enter Content for creating Resume')
-            data_track.info('Add data in text box')
-
+            
             if text_data:
-                # log
-                data_track.info('text recieved')
-                
-                with st.expander('Loaded Data', expanded = True):
-                    # log
-                    data_track.info(f'data loaded in session_state')
-                    st.session_state.data_uploaded.update({'data':{
-                                                                'text_input':{
-                                                                    'text':{
-                                                                        'content':text_data}}}})
-                    
-                    text = st.session_state.data_uploaded['data'].get('text_data')
-                    st.write(text)
-
                 with st.expander(label='What does input text represents ?' ,expanded=True):
-                    data_representation = st.radio(label= 'Select what this data represents',
+                    data_representation = st.radio(label= 'Select what this data represents', label_visibility = 'collapsed',
                                                     options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
                                                     index=None,
                                                     key=f"label_txt_input")
+                    if not data_representation:
+                        st.stop()
+
+                st.session_state.data_uploaded['data'] = {'text_input':{'text':{
+                                                                'content':text_data,
+                                                                'data_representation':data_representation}}}
+                
+                data_track.info(f"text recieved and loaded - {st.session_state.data_uploaded['data'].get('text_input')}") # log         
+                    
+                with st.expander('Loaded Data', expanded = True):
+                    text = st.session_state.data_uploaded['data'].get('text_input')
+                    st.write(text)
+
+            else:
+                data_track.error('No text added')
+                st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
+                st.stop()
 
         else:
             st.warning('Kindly select an Option')
             st.stop()
-
-        with st.expander('Load Meta Data', expanded=True):
+        
+        if st.session_state.data_uploaded.get('data'):
             # log 
             data_track.info('Meta Data')
 
-            jd_data = st.text_input('Job Discription')
+            jd_data = st.text_area('Job Discription')
             template_data = st.text_area('Resume Template', value = default())
-            st.stop()
+
             if st.button('Save', key = 'Meta Data'):
                 if jd_data:
-                    st.session_state.data_uploaded.update({'job_description':jd_data})
+                    st.session_state.data_uploaded['job_description'] = jd_data
                     # log
                     data_track.info('JD added')
                 if template_data:
                     # log
                     data_track.info('Template added')
-                    st.session_state.data_uploaded.update({'template_data':template_data})
-    
+                    st.session_state.data_uploaded['template_data'] = template_data
+                else :
+                    pass
+            else:
+                st.stop()
+        else:
+            st.stop()
+
     @staticmethod
     def data_flatning():
         documents = list()

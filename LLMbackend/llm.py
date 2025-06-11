@@ -27,21 +27,20 @@ class Option_page:
                     st.session_state['data_loaded'] = True
             
             # Enter your query, to provide you with the desired resume
-            if st.button(label='Next', key = 'LLM_Start'):
             # ----- initialize graph
-                if 'work_flow' not in st.session_state:
-                    st.session_state.work_flow = agents.resume_graph(State)
-                    
-                    res_debug.info(f'First Run - {st.session_state.work_flow}') # log
+            if 'work_flow' not in st.session_state:
+                st.session_state.work_flow = agents.resume_graph(State)
+                
+                res_debug.info(f'First Run - {st.session_state.work_flow}') # log
 
-                    # LLM Integration
-                    user_requirement = st.chat_input('Enter your requirement')
-                    if user_requirement: 
-                        # ===== START ===== #
-                        with st.spinner('Processing'):
-                            st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
+                # LLM Integration
+                user_requirement = st.chat_input('Enter your requirement')
+                if user_requirement: 
+                    # ===== START ===== #
+                    with st.spinner('Processing'):
+                        st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
 
-                            res_debug.info('User_requirement') # log
+                        res_debug.info('User_requirement') # log
 
         if st.session_state.state == 'Interrupt':
             # After Interrupt -->
