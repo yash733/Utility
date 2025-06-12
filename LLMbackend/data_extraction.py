@@ -41,7 +41,7 @@ class data_extraction:
 
     @staticmethod
     def resume_data_extraction():
-        if st.session_state.get('data_loaded'):
+        if st.session_state.get('data_loaded') and st.session_state.get('meta_data_saved'):
             return
         
         data_to_update = {}
@@ -49,8 +49,8 @@ class data_extraction:
 
         # Input Method
         option = st.radio(label='Select Input format', options = ['Upload Existing Resume or Content', 'Add data in text box'])
+        
         if option == 'Upload Existing Resume or Content':
-            # log
             data_track.info('Upload Existing Resume or Content') # log
 
             files = st.file_uploader(label='Enter your Resumme to Impprove or To create one add file with content', 
@@ -91,7 +91,6 @@ class data_extraction:
                     
                     # else: Not needed as no other file format can be uploaded
 
-                data_to_update = {}
                 # Saving Loaded Data
                 if pdf_data:
                     data_to_update['pdf_data'] = pdf_data
@@ -100,13 +99,15 @@ class data_extraction:
                 if docx_data:
                     data_to_update['docx_data'] = docx_data
                 
-                with st.expander('Loaded Data', expanded = False):
-                    # ----- Update Session_State with extracted data ----- #
-                    st.session_state.data_uploaded['data'] = data_to_update
-                    data_track.info(f'data loaded in session_state') # log
+                # ----- Update Session_State with extracted data ----- #
+                st.session_state.data_uploaded['data'] = data_to_update
+                st.session_state['data_loaded'] = True  # Flag 'data_loaded' 
+                data_track.info(f'data loaded in session_state') # log
 
-                    st.write(st.session_state.data_uploaded['data'])
-                        
+                with st.expander('Loaded Data', expanded = False):
+                    text = st.session_state.data_uploaded['data']                 
+                    st.write(text)
+            
             else:
                 data_track.error('No file uploaded')
                 st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
@@ -127,7 +128,7 @@ class data_extraction:
                 st.session_state.data_uploaded['data'] = {'text_input':{'text':{
                                                                 'content':text_data,
                                                                 'data_representation':data_representation}}}
-                
+                st.session_state['data_loaded'] = True  # Flag 'data_loaded' 
                 data_track.info(f"text recieved and loaded - {st.session_state.data_uploaded['data'].get('text_input')}") # log         
                     
                 with st.expander('Loaded Data', expanded = True):
@@ -140,29 +141,46 @@ class data_extraction:
                 st.stop()
 
         else:
+            data_track.error('No data uploaded')
             st.warning('Kindly select an Option')
             st.stop()
         
         if st.session_state.data_uploaded.get('data'):
-            # log 
-            data_track.info('Meta Data')
+            data_track.info('Meta Data') # log
 
-            jd_data = st.text_area('Job Discription')
-            template_data = st.text_area('Resume Template', value = default())
+            # Use session state to persist text area values across reruns
+            if 'jd_data' not in st.session_state:
+                st.session_state.jd_data = None
+            if 'template_data' not in st.session_state:
+                st.session_state.template_data = default()
 
-            if st.button('Save', key = 'Meta Data'):
-                if jd_data:
-                    st.session_state.data_uploaded['job_description'] = jd_data
-                    # log
+            # jd_data = st.text_area('Job Discription')
+            # template_data = st.text_area('Resume Template', value = default())
+            st.session_state.jd_data = st.text_area('Job Discription', value=st.session_state.jd_data)
+            st.session_state.template_data = st.text_area('Resume Template', value=st.session_state.template_data)
+
+            # if st.button('Save', key = 'Meta Data'):
+            #     if jd_data:
+            #         st.session_state.data_uploaded['job_description'] = jd_data
+            #         # log
+            #         data_track.info('JD added')
+            #     if template_data:
+            #         # log
+            #         data_track.info('Template added')
+            #         st.session_state.data_uploaded['template_data'] = template_data
+            #     else:
+            #         st.stop()
+
+            if st.button('Save', key='Meta Data'):
+                if st.session_state.jd_data:
+                    st.session_state.data_uploaded['job_description'] = st.session_state.jd_data
                     data_track.info('JD added')
-                if template_data:
-                    # log
+                if st.session_state.template_data:
+                    st.session_state.data_uploaded['template_data'] = st.session_state.template_data
                     data_track.info('Template added')
-                    st.session_state.data_uploaded['template_data'] = template_data
-                else :
-                    pass
-            else:
-                st.stop()
+                
+                st.session_state['meta_data_saved'] = True  # Flag 'meta_data_loaded'
+                
         else:
             st.stop()
 

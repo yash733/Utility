@@ -19,12 +19,11 @@ class Option_page:
         st.write('Help you create or improve existing resume, wich is JD specific.')
         
         if st.session_state.state == 'START':
-            if not st.session_state.get('data_loaded'):
+            if not st.session_state.get('meta_data_saved'):
                 # file upload and processing -->
                 with st.spinner('Loading Data'):
                     data_extraction.resume_data_extraction()
                     res_debug.info('Data Extraction Done') # log
-                    st.session_state['data_loaded'] = True
             
             # Enter your query, to provide you with the desired resume
             # ----- initialize graph
@@ -41,6 +40,8 @@ class Option_page:
                         st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
 
                         res_debug.info('User_requirement') # log
+                else:
+                    st.stop()
 
         if st.session_state.state == 'Interrupt':
             # After Interrupt -->
