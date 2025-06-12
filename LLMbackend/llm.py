@@ -24,6 +24,7 @@ class Option_page:
                 with st.spinner('Loading Data'):
                     data_extraction.resume_data_extraction()
                     res_debug.info('Data Extraction Done') # log
+                return
             
             # Enter your query, to provide you with the desired resume
             # ----- initialize graph
@@ -32,16 +33,15 @@ class Option_page:
                 
                 res_debug.info(f'First Run - {st.session_state.work_flow}') # log
 
-                # LLM Integration
-                user_requirement = st.chat_input('Enter your requirement')
-                if user_requirement: 
-                    # ===== START ===== #
-                    with st.spinner('Processing'):
-                        st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
+            # LLM Integration
+            user_requirement = st.chat_input('Enter your requirement')
+            if user_requirement: 
+                # ===== START ===== #
+                with st.spinner('Processing'):
+                    st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
 
-                        res_debug.info('User_requirement') # log
-                else:
-                    st.stop()
+                    res_debug.info('User_requirement') # log
+            return
 
         if st.session_state.state == 'Interrupt':
             # After Interrupt -->
@@ -52,7 +52,8 @@ class Option_page:
             if user_suggestion:
                 with st.spinner('Processing'):
                     st.session_state.work_flow.invoke({'user_suggestion':user_suggestion}, config = st.session_state.config)
-
+            return
+    
         if st.session_state.state == 'Agent':
             state = st.session_state.work_flow.get_state(config = st.session_state.config)
             st.markdown(state.values.get('final_resume'))
@@ -65,6 +66,7 @@ class Option_page:
                 for msg in st.session_state.ouput_data['message_data']:
                     with st.chat_message(msg.get('role')):
                         st.markdown(msg.get('content'))
+            return
 
     def create_cv(self):
         pass

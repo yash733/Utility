@@ -150,39 +150,44 @@ class data_extraction:
 
             # Use session state to persist text area values across reruns
             if 'jd_data' not in st.session_state:
-                st.session_state.jd_data = None
+                st.session_state.jd_data = ""
             if 'template_data' not in st.session_state:
                 st.session_state.template_data = default()
 
             # jd_data = st.text_area('Job Discription')
             # template_data = st.text_area('Resume Template', value = default())
-            st.session_state.jd_data = st.text_area('Job Discription', value=st.session_state.jd_data)
-            st.session_state.template_data = st.text_area('Resume Template', value=st.session_state.template_data)
+            # st.session_state.jd_data = st.text_area('Job Discription', value=st.session_state.jd_data)
+            # st.session_state.template_data = st.text_area('Resume Template', value=st.session_state.template_data)
 
-            # if st.button('Save', key = 'Meta Data'):
-            #     if jd_data:
-            #         st.session_state.data_uploaded['job_description'] = jd_data
-            #         # log
-            #         data_track.info('JD added')
-            #     if template_data:
-            #         # log
-            #         data_track.info('Template added')
-            #         st.session_state.data_uploaded['template_data'] = template_data
-            #     else:
-            #         st.stop()
+            with st.form(key='meta_data_form'):
+                jd_data = st.text_area(
+                    'Job Description', 
+                    value=st.session_state.jd_data,
+                    height=200
+                )
+                template_data = st.text_area(
+                    'Resume Template', 
+                    value=st.session_state.template_data,
+                    height=400
+                )
 
-            if st.button('Save', key='Meta Data'):
-                if st.session_state.jd_data:
-                    st.session_state.data_uploaded['job_description'] = st.session_state.jd_data
+                # Submit button inside form
+                submit = st.form_submit_button('Save Meta Data')
+                
+            if submit:
+                if jd_data:
+                    st.session_state.jd_data = jd_data
+                    st.session_state.data_uploaded['job_description'] = jd_data
                     data_track.info('JD added')
-                if st.session_state.template_data:
-                    st.session_state.data_uploaded['template_data'] = st.session_state.template_data
+                if template_data:
+                    st.session_state.template_data = template_data
+                    st.session_state.data_uploaded['template_data'] = template_data
                     data_track.info('Template added')
                 
-                st.session_state['meta_data_saved'] = True  # Flag 'meta_data_loaded'
-                
-        else:
-            st.stop()
+                st.session_state['meta_data_saved'] = True
+                st.success("Meta data saved successfully!")
+                st.rerun()
+            return
 
     @staticmethod
     def data_flatning():

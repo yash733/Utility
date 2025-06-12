@@ -14,6 +14,12 @@ from langgraph.checkpoint.memory import MemorySaver
 from LLMbackend.data_extraction import data_extraction
 from config.resume_template import default
 from config.variable_validation import State, response_analysis, expert_review_resume
+from logger.logg_rep import logging
+
+# ===============================
+log = logging.getLogger('Graph')
+log.setLevel(logging.DEBUG)
+# ===============================
 
 class vector_db:
     _vector_db = None
@@ -22,11 +28,11 @@ class vector_db:
     def create_vector_db(cls):
         if cls._vector_db == None:
             embedding = OllamaEmbeddings(model="nomic-embed-text:v1.5")
-            
             reduced_document = data_extraction.data_flatning()
             # vectorstore will hold important data @files
             cls._vectore_db = FAISS.from_documents(documents=reduced_document, embedding=embedding)
-    
+            log.info('Vector_DB created')
+
     @classmethod
     def get_retrieval_chain(cls, model, prompt):
         vector_db.create_vector_db()
@@ -37,8 +43,13 @@ class vector_db:
     
 
 class agents:
-    model = st.session_state.user_selection.get('llm_model')
-    
+    try:
+        model = st.session_state.user_selection.get('llm_model')
+        with st.spinner('Test Model'):
+            res = model.invoke('testing connection, respond.')
+            log.info(res)
+    except:
+        log.error('Model Fu**up')
     # ======================================== #
     @classmethod
     def history_trimmer(cls, token_size = 500):
@@ -93,6 +104,7 @@ class agents:
             input_data = {'requirement' : state.get('user_request'),
                           'job_description' : st.session_state.data_uploaded.get('job_description'),
                           'template' : default()}
+            log.info('Prompt 1') # log
 
         # === Loop RUN === #
         if st.session_state.state == 'Interrupt':
@@ -115,11 +127,12 @@ class agents:
             
             # Trim Message
             trimmed_history = cls.history_trimmer.invoke(st.session_state.ouput_data['message_data'])
-            input_data = {'user_suggestion' : State.get('user_suggestion'),
-                          'resume' : State.get('resume'),
+            input_data = {'user_suggestion' : state.get('user_suggestion'),
+                          'resume' : state.get('resume'),
                           'job_description' : st.session_state.data_uploaded.get('job_description'),
                           'chat_history' : trimmed_history}
-            
+            log.info('Prompt 2 Interrupt') # log
+
         # === Loop RUN === #
         if st.session_state.state == 'Agent':
             system = {'role':'system',
@@ -142,7 +155,8 @@ class agents:
             input_data = {'expert' : expert_review_resume.get('suggestion'),
                           'resume' : State.get('resume'),
                           'chat_history' : trimmed_history}
-            
+            log.info('Prompt 3 Agent') # log
+
         # featching relevant doocuments
         retrieval_chain = vector_db.get_retrieval_chain(cls.model, prompt)            
 
