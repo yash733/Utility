@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
 class State(TypedDict):
     resume : str
-    user_request : str
+    user_requirement : str
     user_suggestion : str
     final_resume : str
     suggestion : str

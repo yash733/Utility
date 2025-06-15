@@ -8,8 +8,10 @@ from LLMbackend.llm import Option_page  # Go to selected option function for pro
 
 from logger.logg_rep import logging
 
+# =========================== #
 debug = logging.getLogger('Side-Bar')
 debug.setLevel(logging.DEBUG)
+# =========================== #
 
 def sidebar():
     with st.sidebar:
@@ -29,9 +31,9 @@ def sidebar():
 
                             model = st.session_state.user_selection.get('llm_model')
                             res = model.invoke('hello')
-                    
-                        # log
-                        debug.info('GROQ - ',st.session_state.user_selection.get('llm_model')) 
+                            debug.info(f'Model working response - {res}')
+                                            
+                        debug.info('GROQ - ',st.session_state.user_selection.get('llm_model')) # log
                     
                     except Exception as e:
                         debug.error(f'Un-able establish connection with Groq - \n{e}')
@@ -53,7 +55,8 @@ def sidebar():
                         with st.spinner('Testing Connection'):
                             model = st.session_state.user_selection.get('llm_model')
                             res = model.invoke('hello')
-                    
+                            debug.info(f'Model working - {res}') # log
+                        debug.info(f"Ollama - {st.session_state.user_selection.get('llm_model')}") # log
                     except Exception as e:
                         debug.info('Ollama Model empty, object not created')
 

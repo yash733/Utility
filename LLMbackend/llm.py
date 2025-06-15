@@ -7,8 +7,10 @@ from config.variable_validation import State
 from LLMbackend.agents import agents
 from logger.logg_rep import logging
 
+# ======================================= #
 res_debug = logging.getLogger('create_resume')
 res_debug.setLevel(logging.DEBUG)
+# ======================================= #
 
 class Option_page:
     def __init__(self):
@@ -29,18 +31,24 @@ class Option_page:
             # Enter your query, to provide you with the desired resume
             # ----- initialize graph
             if 'work_flow' not in st.session_state:
-                st.session_state.work_flow = agents.resume_graph(State)
+                # Initialize model and check it worked
+                if agents.initialize_model() is None:
+                    st.error("Cannot proceed without a valid LLM model")
+                    res_debug.error('No Model Instance') # log
+                    return
                 
-                res_debug.info(f'First Run - {st.session_state.work_flow}') # log
+                st.session_state.work_flow = agents.resume_graph(State)
+                res_debug.info(f'Graph initialized - {st.session_state.work_flow}') # log
 
             # LLM Integration
             user_requirement = st.chat_input('Enter your requirement')
+            res_debug.info(f'User_requirement - {user_requirement}') # log
+
             if user_requirement: 
                 # ===== START ===== #
                 with st.spinner('Processing'):
-                    st.session_state.work_flow.invoke({'user_request':user_requirement}, config=st.session_state.config)
-
-                    res_debug.info('User_requirement') # log
+                    st.session_state.work_flow.invoke({'user_requirement':user_requirement}, config=st.session_state.config)
+                    res_debug.info('First Invoke --') # log
             return
 
         if st.session_state.state == 'Interrupt':
@@ -63,11 +71,10 @@ class Option_page:
                 st.markdown(state)
             
             with st.expander('Chat history'):
-                for msg in st.session_state.ouput_data['message_data']:
+                for msg in st.session_state.output_data['message_data']:
                     with st.chat_message(msg.get('role')):
                         st.markdown(msg.get('content'))
             return
 
     def create_cv(self):
         pass
-

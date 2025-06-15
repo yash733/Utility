@@ -9,8 +9,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from config.resume_template import default
 from logger.logg_rep import logging
 
-data_track = logging.getLogger('Data-Flow')
+# ============================================ #
+data_track = logging.getLogger('Data extraction')
 data_track.setLevel(logging.DEBUG)
+# ============================================ #
 
 class data_extraction:
     '''
@@ -170,10 +172,11 @@ class data_extraction:
                     value=st.session_state.template_data,
                     height=400
                 )
-
                 # Submit button inside form
                 submit = st.form_submit_button('Save Meta Data')
-                
+                data_track.info(f'Template {template_data}') # log
+                data_track.info(f'Job description {jd_data}') # log
+            
             if submit:
                 if jd_data:
                     st.session_state.jd_data = jd_data
