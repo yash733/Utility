@@ -40,7 +40,7 @@ class vector_db:
         
         vector_db.create_vector_db()
         log.info('Featching Relevant information from vectordb') # log
-        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 15})
+        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 8})
         doc_chain = create_stuff_documents_chain(llm = model,
                                                  prompt = prompt, 
                                                  document_variable_name = "context")
@@ -190,16 +190,19 @@ class agents:
 
         # executing
         result = retrieval_chain.invoke(input_data)
+        log.info(result) # log
+        log.debug(f'Output 1 - {result.get("answer")}') # log
+        # log.info(f'Output 2 - {result["answer"]}') # log
         st.session_state.output_data['message_data'].append(system)
-        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.content})
+        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get("answer")})
 
-        return {'resume': result.content}
+        return {'resume': result.get("answer")}
     
     # -----------------------------------------------
     def user_input_interrupt(state: State):
         st.session_state.state = 'Interrupt' # State tracking
         log.info('User Interrupt') # log
-        return State
+        return state
     
     # -----------------------------------------------
     @classmethod
@@ -211,7 +214,7 @@ class agents:
                 More Information:
                     {context}
 
-                Resume:
+                Resume Created by AI:
                     {resume}
 
                 Job Description:
@@ -234,9 +237,9 @@ class agents:
                       }
                 
         result = retrieval_chain.invoke(input_data)
-
+        log.debug(f'Review Agent - {result}')
         st.session_state.output_data['message_data'].append(system)
-        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.content})
+        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result})
 
         if result.sentiment == 'Perfect':
             log.info('Review Agent - Final Resume') # log
@@ -261,7 +264,8 @@ class agents:
         prompt = ChatPromptTemplate.from_messages([{'role': 'system', 
                                                     'content': f'''
                                                         Analyze the following text and respond if improvement is required or not:
-                                                            {state['user_suggestion']}'''}])
+                                                            {state['user_suggestion']}
+                                                    '''}])
         model = cls.model.with_structured_output(response_analysis)
         res = model.invoke(prompt)
         if res.sentiment == 'Perfect':

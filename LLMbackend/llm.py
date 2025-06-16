@@ -49,15 +49,18 @@ class Option_page:
                 with st.spinner('Processing'):
                     st.session_state.work_flow.invoke({'user_requirement':user_requirement}, config=st.session_state.config)
                     res_debug.info('First Invoke --') # log
+                    res_debug.debug(st.session_state.output_data.get('message_data'))
             return
 
-        if st.session_state.state == 'Interrupt':
+        if st.session_state.state == 'Create_Resume':
             # After Interrupt -->
             state = st.session_state.work_flow.get_state(config = st.session_state.config)
-            st.markdown(state.values.get('resume'))
+            st.write(state.values.get('resume'))
+            res_debug.debug('Interrupt Node')
 
             user_suggestion = st.chat_input('Enter either your are satisfied or improvement is required')
             if user_suggestion:
+                res_debug.info(f'User Suggestion - {user_suggestion}') # log
                 with st.spinner('Processing'):
                     st.session_state.work_flow.invoke({'user_suggestion':user_suggestion}, config = st.session_state.config)
             return

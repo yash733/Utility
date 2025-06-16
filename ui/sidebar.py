@@ -25,7 +25,9 @@ def sidebar():
                                                          'model_name':st.selectbox(label='Groq Model', options=Config().get_groq_model())})
 
                 if st.session_state.user_selection['api_key'] and st.session_state.user_selection['model_name'] and st.button(label='Proceed', key='Satge1 Groq'):
-                    try : 
+                    try :
+                        if st.session_state.user_selection.get('llm_model'):
+                            del st.session_state.user_selection['llm_model']
                         with st.spinner('Testing Connection'):
                             st.session_state.user_selection.update({'llm_model':Model.get_groq(st.session_state.user_selection['api_key'], st.session_state.user_selection['model_name'])})
 
@@ -50,6 +52,8 @@ def sidebar():
 
                 if st.session_state.user_selection['model_name'] and st.button(label='Proceed', key='Stage1 Ollama'):
                     try:
+                        if st.session_state.user_selection.get('llm_model'):
+                            del st.session_state.user_selection['llm_model']
                         st.session_state.user_selection.update({'llm_model':Model.get_ollama(st.session_state.user_selection['model_name'])})
 
                         with st.spinner('Testing Connection'):

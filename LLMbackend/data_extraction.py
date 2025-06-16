@@ -46,111 +46,113 @@ class data_extraction:
         if st.session_state.get('data_loaded') and st.session_state.get('meta_data_saved'):
             return
         
-        data_to_update = {}
-        pdf_data, txt_data, docx_data = {}, {}, {}
+        if not st.session_state.data_uploaded.get('data'):
+            data_to_update = {}
+            pdf_data, txt_data, docx_data = {}, {}, {}
 
-        # Input Method
-        option = st.radio(label='Select Input format', options = ['Upload Existing Resume or Content', 'Add data in text box'])
-        
-        if option == 'Upload Existing Resume or Content':
-            data_track.info('Upload Existing Resume or Content') # log
-
-            files = st.file_uploader(label='Enter your Resumme to Impprove or To create one add file with content', 
-                                     type=['pdf','txt','docx'], accept_multiple_files = True)
+            # Input Method
+            option = st.radio(label='Select Input format', options = ['Upload Existing Resume or Content', 'Add data in text box'])
             
-            # Loading Data
-            # Also can handle multiple docs @Future Enabled
-            if files:
-                # log
-                data_track.info('file uploaded')
+            if option == 'Upload Existing Resume or Content':
+                data_track.info('Upload Existing Resume or Content') # log
 
-                for file in files:
-                    with st.expander(label=f'What does {file.name} represents ?' ,expanded=True):
-                        data_representation = st.radio(label= "d", label_visibility = 'collapsed',
-                                                       options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
-                                                       index=None,
-                                                       key=f"label_{file.name}")
+                files = st.file_uploader(label='Enter your Resumme to Impprove or To create one add file with content', 
+                                        type=['pdf','txt','docx'], accept_multiple_files = True)
+                
+                # Loading Data
+                # Also can handle multiple docs @Future Enabled
+                if files:
+                    # log
+                    data_track.info('file uploaded')
+
+                    for file in files:
+                        with st.expander(label=f'What does {file.name} represents ?' ,expanded=True):
+                            data_representation = st.radio(label= "d", label_visibility = 'collapsed',
+                                                        options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
+                                                        index=None,
+                                                        key=f"label_{file.name}")
+                            if not data_representation:
+                                st.stop()
+                        
+                        if file.name.lower().endswith('.pdf'):
+                            # pdf
+                            pdf_data.update({file.name : {'content' : data_extraction.data_pdf(file), 
+                                                        'data_representation':data_representation}})
+                            data_track.info('Updated pdf_data') # log
+
+                        elif file.name.lower().endswith('.txt'):
+                            # txt
+                            txt_data.update({file.name : {'content' : data_extraction.data_txt(file), 
+                                                        'data_representation':data_representation}})
+                            data_track.info('Updated txt_data') # log
+
+                        elif file.name.lower().endswith('.docx'):   
+                            # docx
+                            docx_data.update({file.name : {'content' : data_extraction.data_docx(file), 
+                                                        'data_representation':data_representation}})
+                            data_track.info('Updated docx_data') # log
+                        
+                        # else: Not needed as no other file format can be uploaded
+
+                    # Saving Loaded Data
+                    if pdf_data:
+                        data_to_update['pdf_data'] = pdf_data
+                    if txt_data:
+                        data_to_update['txt_data'] = txt_data
+                    if docx_data:
+                        data_to_update['docx_data'] = docx_data
+                    
+                    # ----- Update Session_State with extracted data ----- #
+                    st.session_state.data_uploaded['data'] = data_to_update
+                    st.session_state['data_loaded'] = True  # Flag 'data_loaded' 
+                    data_track.info(f'data loaded in session_state') # log
+
+                    with st.expander('Loaded Data', expanded = False):
+                        text = st.session_state.data_uploaded['data']                 
+                        st.write(text)
+                
+                else:
+                    data_track.error('No file uploaded')
+                    st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
+                    st.stop()
+            
+            elif option == 'Add data in text box':
+                text_data = st.text_area(label='Enter Content for creating Resume')
+                
+                if text_data:
+                    with st.expander(label='What does input text represents ?' ,expanded=True):
+                        data_representation = st.radio(label= 'Select what this data represents', label_visibility = 'collapsed',
+                                                        options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
+                                                        index=None,
+                                                        key=f"label_txt_input")
                         if not data_representation:
                             st.stop()
-                    
-                    if file.name.lower().endswith('.pdf'):
-                        # pdf
-                        pdf_data.update({file.name : {'content' : data_extraction.data_pdf(file), 
-                                                    'data_representation':data_representation}})
-                        data_track.info('Updated pdf_data') # log
 
-                    elif file.name.lower().endswith('.txt'):
-                        # txt
-                        txt_data.update({file.name : {'content' : data_extraction.data_txt(file), 
-                                                    'data_representation':data_representation}})
-                        data_track.info('Updated txt_data') # log
+                    st.session_state.data_uploaded['data'] = {'text_input':{'text':{
+                                                                    'content':text_data,
+                                                                    'data_representation':data_representation}}}
+                    st.session_state['data_loaded'] = True  # Flag 'data_loaded' 
+                    data_track.info(f"text recieved and loaded - {st.session_state.data_uploaded['data'].get('text_input')}") # log         
+                        
+                    with st.expander('Loaded Data', expanded = True):
+                        text = st.session_state.data_uploaded['data'].get('text_input')
+                        st.write(text)
+                    return
 
-                    elif file.name.lower().endswith('.docx'):   
-                        # docx
-                        docx_data.update({file.name : {'content' : data_extraction.data_docx(file), 
-                                                    'data_representation':data_representation}})
-                        data_track.info('Updated docx_data') # log
-                    
-                    # else: Not needed as no other file format can be uploaded
-
-                # Saving Loaded Data
-                if pdf_data:
-                    data_to_update['pdf_data'] = pdf_data
-                if txt_data:
-                    data_to_update['txt_data'] = txt_data
-                if docx_data:
-                    data_to_update['docx_data'] = docx_data
-                
-                # ----- Update Session_State with extracted data ----- #
-                st.session_state.data_uploaded['data'] = data_to_update
-                st.session_state['data_loaded'] = True  # Flag 'data_loaded' 
-                data_track.info(f'data loaded in session_state') # log
-
-                with st.expander('Loaded Data', expanded = False):
-                    text = st.session_state.data_uploaded['data']                 
-                    st.write(text)
-            
-            else:
-                data_track.error('No file uploaded')
-                st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
-                st.stop()
-        
-        elif option == 'Add data in text box':
-            text_data = st.text_area(label='Enter Content for creating Resume')
-            
-            if text_data:
-                with st.expander(label='What does input text represents ?' ,expanded=True):
-                    data_representation = st.radio(label= 'Select what this data represents', label_visibility = 'collapsed',
-                                                    options=['Resume', 'CV', 'Profile Detail', 'Acchievement/Accomplishment', 'Meta Data'],
-                                                    index=None,
-                                                    key=f"label_txt_input")
-                    if not data_representation:
-                        st.stop()
-
-                st.session_state.data_uploaded['data'] = {'text_input':{'text':{
-                                                                'content':text_data,
-                                                                'data_representation':data_representation}}}
-                st.session_state['data_loaded'] = True  # Flag 'data_loaded' 
-                data_track.info(f"text recieved and loaded - {st.session_state.data_uploaded['data'].get('text_input')}") # log         
-                    
-                with st.expander('Loaded Data', expanded = True):
-                    text = st.session_state.data_uploaded['data'].get('text_input')
-                    st.write(text)
+                else:
+                    data_track.error('No text added')
+                    st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
+                    st.stop()
 
             else:
-                data_track.error('No text added')
-                st.warning("Kindly upload an existing Resume or Context to create/improve Resume !")
+                data_track.error('No data uploaded')
+                st.warning('Kindly select an Option')
                 st.stop()
-
-        else:
-            data_track.error('No data uploaded')
-            st.warning('Kindly select an Option')
-            st.stop()
-        
+            
+        # Once Files are Uploaded ---> 
         if st.session_state.data_uploaded.get('data'):
             data_track.info('Meta Data') # log
 
-            # Use session state to persist text area values across reruns
             if 'jd_data' not in st.session_state:
                 st.session_state.jd_data = ""
             if 'template_data' not in st.session_state:
