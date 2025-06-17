@@ -6,6 +6,9 @@
 
 ---
 
+![flow_chart](https://github.com/user-attachments/assets/17e043f9-c933-4c50-a623-9f9704b87c13)
+
+---
 ## To Work on - <br>
 data_exteaction - 153 to 164 "Save button not working" | used form fomat to hadle meta data interactions.<br>
 After adding user_requirement - "None Type error is comming" | still present something is wrong with model intialization, even after testing the connection at the beginning.<br>
