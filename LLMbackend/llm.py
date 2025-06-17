@@ -39,35 +39,47 @@ class Option_page:
                 
                 st.session_state.work_flow = agents.resume_graph(State)
                 res_debug.info(f'Graph initialized - {st.session_state.work_flow}') # log
+                
+                chart = st.session_state.work_flow.get_graph().draw_mermaid_png()
+                flowchart = './flow_chart.png'
+                with open(flowchart, 'wb') as f:
+                    f.write(chart)
 
             # LLM Integration
-            user_requirement = st.chat_input('Enter your requirement')
+            user_requirement = st.chat_input('What kind of resume you want to create? Enter your requirement:-')
             res_debug.info(f'User_requirement - {user_requirement}') # log
 
             if user_requirement: 
                 # ===== START ===== #
                 with st.spinner('Processing'):
-                    st.session_state.work_flow.invoke({'user_requirement':user_requirement}, config=st.session_state.config)
+                    st.session_state.work_flow.invoke(input={'user_requirement':user_requirement}, config=st.session_state.config)
                     res_debug.info('First Invoke --') # log
                     res_debug.debug(st.session_state.output_data.get('message_data'))
-            return
+                    st.rerun()
 
-        if st.session_state.state == 'Create_Resume':
+        elif st.session_state.state == 'Create_Resume':
+            res_debug.debug(f'Interrupt Node -{st.session_state.state}') # log
+
             # After Interrupt -->
-            state = st.session_state.work_flow.get_state(config = st.session_state.config)
-            st.write(state.values.get('resume'))
-            res_debug.debug('Interrupt Node')
+            current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
+            with st.chat_message('ai'):
+                st.markdown(current_state.values['resume'])         
 
             user_suggestion = st.chat_input('Enter either your are satisfied or improvement is required')
             if user_suggestion:
                 res_debug.info(f'User Suggestion - {user_suggestion}') # log
                 with st.spinner('Processing'):
-                    st.session_state.work_flow.invoke({'user_suggestion':user_suggestion}, config = st.session_state.config)
-            return
-    
-        if st.session_state.state == 'Agent':
-            state = st.session_state.work_flow.get_state(config = st.session_state.config)
-            st.markdown(state.values.get('final_resume'))
+                    st.session_state.work_flow.update_state(config = st.session_state.config, values = {'user_suggestion':user_suggestion})
+                    st.session_state.work_flow.invoke(None, config = st.session_state.config)
+                    st.rerun()
+            else:
+                st.stop()           
+
+        elif st.session_state.state == 'Agent':
+            res_debug.debug('Agent Inteface') # log 
+            current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
+            with st.chat_message('ai'):
+                st.markdown(current_state.values['resume'])
             
             with st.expander('Call information'):
                 state = st.session_state.work_flow.get_state_history(config = st.session_state.config)
@@ -77,7 +89,7 @@ class Option_page:
                 for msg in st.session_state.output_data['message_data']:
                     with st.chat_message(msg.get('role')):
                         st.markdown(msg.get('content'))
-            return
+            
 
     def create_cv(self):
         pass

@@ -70,7 +70,7 @@ class agents:
 
     # ======================================== #
     @classmethod
-    def history_trimmer(cls, token_size = 500):
+    def history_trimmer(cls, messages, token_size = 500):
         trimmer = trim_messages(
             max_tokens = token_size,
             strategy = 'last',
@@ -80,7 +80,7 @@ class agents:
             allow_partial = False
         )
         log.info('History trimmed') # log
-        return trimmer
+        return trimmer(messages) # Call the trimmer directly
     
     # ========================================= #
 
@@ -128,14 +128,14 @@ class agents:
                 Generate the complete resume that can be converted to pdf and directly be send to recruter.'''}
             
             prompt = ChatPromptTemplate.from_messages([system])
-           
+            log.info('Prompt 1') # log
+
             input_data = {'input' : state.get('user_requirement'),
                           'job_description' : st.session_state.data_uploaded.get('job_description'),
                           'template' : st.session_state.template_data}
-            log.info('Prompt 1') # log
-
+            
         # === Loop RUN === #
-        if st.session_state.state == 'Interrupt':
+        elif st.session_state.state == 'Interrupt':
             system = {'role':'system',
                         'content':'''
                         Changes requested by User:
@@ -152,24 +152,24 @@ class agents:
                         '''}
             
             prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
-            
+            log.info('Prompt 2 Interrupt') # log
+
             # Trim Message
-            trimmed_history = cls.history_trimmer.invoke(st.session_state.output_data['message_data'])
+            trimmed_history = cls.history_trimmer(st.session_state.output_data['message_data'])
             input_data = {'input' : state.get('user_suggestion'),
                           'resume' : state.get('resume'),
                           'job_description' : st.session_state.data_uploaded.get('job_description'),
                           'chat_history' : trimmed_history}
-            log.info('Prompt 2 Interrupt') # log
 
         # === Loop RUN === #
-        if st.session_state.state == 'Agent':
+        elif st.session_state.state == 'Agent':
             system = {'role':'system',
                     'content': '''
                     Context:
                         {context}
 
                     Changes suggested by Hiring Expert:
-                        {expert}
+                        {input}
                         
                     Current Resume:
                         {resume}
@@ -178,13 +178,14 @@ class agents:
                     '''}
             
             prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
-            # Trim Message
-            trimmed_history = cls.history_trimmer.invoke(st.session_state.output_data['message_data'])
-            input_data = {'expert' : expert_review_resume.get('suggestion'),
-                          'resume' : State.get('resume'),
-                          'chat_history' : trimmed_history}
             log.info('Prompt 3 Agent') # log
 
+            # Trim Message
+            trimmed_history = cls.history_trimmer(st.session_state.output_data['message_data'])
+            input_data = {'input' : expert_review_resume.get('suggestion'),
+                          'resume' : State.get('resume'),
+                          'chat_history' : trimmed_history}
+            
         # featching relevant doocuments
         retrieval_chain = vector_db.get_retrieval_chain(cls.model, prompt)            
 
@@ -192,7 +193,7 @@ class agents:
         result = retrieval_chain.invoke(input_data)
         log.info(result) # log
         log.debug(f'Output 1 - {result.get("answer")}') # log
-        # log.info(f'Output 2 - {result["answer"]}') # log
+
         st.session_state.output_data['message_data'].append(system)
         st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get("answer")})
 
@@ -215,7 +216,7 @@ class agents:
                     {context}
 
                 Resume Created by AI:
-                    {resume}
+                    {input}
 
                 Job Description:
                     {job_description if job_description else 'No job description is provied by user end'}
@@ -229,9 +230,9 @@ class agents:
         retrieval_chain = vector_db.get_retrieval_chain(model, prompt)
 
         # trimme message history
-        trimmed_history = cls.history_trimmer.invoke(st.session_state.output_data['message_data'])
+        trimmed_history = cls.history_trimmer(st.session_state.output_data['message_data'])
 
-        input_data = {'resume' : state.get('resume'),
+        input_data = {'input' : state.get('resume'),
                       'job_description' : st.session_state.data_uploaded.get('job_description'),
                       'chat_history' : trimmed_history
                       }
@@ -239,20 +240,21 @@ class agents:
         result = retrieval_chain.invoke(input_data)
         log.debug(f'Review Agent - {result}')
         st.session_state.output_data['message_data'].append(system)
-        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result})
+        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get('answer')})
 
         if result.sentiment == 'Perfect':
             log.info('Review Agent - Final Resume') # log
-            return {'final_resume': result.resume}
+            return {'final_resume': result.get('resume')}
             
         elif result.sentiment == 'Improvement Required':
             log.info('Review Agent - Improvent is required') # log
-            return {'suggestion': result.suggestion, 
-                    'sentiment' : result.sentiment, 
-                    'resume' : result.resume}
+            return {'suggestion': result.get('suggestion'), 
+                    'sentiment' : result.get('sentiment'), 
+                    'resume' : result.get('resume')}
         
     # -----------------------------------------------            
     def rout_after_reviewagent(state: State):
+        log.debug('re-rout after_reviewagent') # log
         if state.get('final_resume'):
             return END
         elif state.get('sentiment') == 'Improvement Required':
@@ -261,13 +263,18 @@ class agents:
     # -----------------------------------------------
     @classmethod
     def sentiment(cls, state: State):
+        log.debug('Sentiment-After-Interrupt') # log
         prompt = ChatPromptTemplate.from_messages([{'role': 'system', 
                                                     'content': f'''
                                                         Analyze the following text and respond if improvement is required or not:
-                                                            {state['user_suggestion']}
+                                                            {'user_suggestion'}
                                                     '''}])
-        model = cls.model.with_structured_output(response_analysis)
-        res = model.invoke(prompt)
+        chain = prompt | cls.model.with_structured_output(response_analysis)
+        res = chain.invoke({
+            'suggestion' : state['user_suggestion']
+        })
+
+        log.debug(f'{res} , {res.sentiment}') #log
         if res.sentiment == 'Perfect':
             return 'Perfect'
         elif res.sentiment == 'Improvement Required':
