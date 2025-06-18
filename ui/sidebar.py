@@ -77,7 +77,8 @@ def sidebar():
 def chack_option():
     option_functions = {
         'Create Resume' : Option_page().create_resume,
-        'Create CV' : Option_page().create_cv
+        'Create CV' : Option_page().create_cv,
+        'PDF Merge' : Option_page().pdf_merge
         # Map more function based on options avilable to the user
     }
     call_funct = option_functions.get(st.session_state.user_selection['option_selected'])

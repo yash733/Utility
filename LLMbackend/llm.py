@@ -5,6 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
 from config.variable_validation import State
 from LLMbackend.agents import agents
+from LLMbackend.pdf_creator import save_resume_as_pdf
+from LLMbackend.pdf_oprations.merge import main
 from logger.logg_rep import logging
 
 # ======================================= #
@@ -67,7 +69,6 @@ class Option_page:
 
             user_suggestion = st.chat_input('Enter either your are satisfied or improvement is required')
             if user_suggestion:
-                res_debug.info(f'User Suggestion - {user_suggestion}') # log
                 with st.spinner('Processing'):
                     st.session_state.work_flow.update_state(config = st.session_state.config, values = {'user_suggestion':user_suggestion})
                     st.session_state.work_flow.invoke(None, config = st.session_state.config)
@@ -90,6 +91,11 @@ class Option_page:
                     with st.chat_message(msg.get('role')):
                         st.markdown(msg.get('content'))
             
+            # Save .pdf
+            save_resume_as_pdf(current_state.values['resume'])                       
 
     def create_cv(self):
         pass
+
+    def pdf_merge(self):
+        main()

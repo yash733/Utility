@@ -7,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_ollama import OllamaEmbeddings
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
-from langchain_core.messages.utils import trim_messages
+from langchain_core.messages import trim_messages
 from langgraph.graph import START, END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -40,7 +40,7 @@ class vector_db:
         
         vector_db.create_vector_db()
         log.info('Featching Relevant information from vectordb') # log
-        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 8})
+        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 6})
         doc_chain = create_stuff_documents_chain(llm = model,
                                                  prompt = prompt, 
                                                  document_variable_name = "context")
@@ -70,17 +70,17 @@ class agents:
 
     # ======================================== #
     @classmethod
-    def history_trimmer(cls, messages, token_size = 500):
-        trimmer = trim_messages(
+    def history_trimmer(cls, messages, token_size = 400):
+        trimme_message = trim_messages( 
+            messages,
             max_tokens = token_size,
             strategy = 'last',
             token_counter = cls.model,
             start_on = 'system',
-            inclue_system = True,
             allow_partial = False
-        )
+            )
         log.info('History trimmed') # log
-        return trimmer(messages) # Call the trimmer directly
+        return trimme_message 
     
     # ========================================= #
 
@@ -97,7 +97,7 @@ class agents:
 
         # === First RUN === #
         if st.session_state.state == 'START': # State tracking
-            st.session_state.state = 'Create_Resume'
+            
             system = {'role':'system',
                 'content':'''
                 You are an expert resume writer and ATS (Applicant Tracking System) specialist.
@@ -138,6 +138,9 @@ class agents:
         elif st.session_state.state == 'Interrupt':
             system = {'role':'system',
                         'content':'''
+                        Context:
+                            {context}
+
                         Changes requested by User:
                             {input}
 
@@ -191,12 +194,14 @@ class agents:
 
         # executing
         result = retrieval_chain.invoke(input_data)
-        log.info(result) # log
+        log.info(f'result , {result}') # log
         log.debug(f'Output 1 - {result.get("answer")}') # log
 
         st.session_state.output_data['message_data'].append(system)
         st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get("answer")})
-
+        log.info(f'State {st.session_state.state}') # log
+        
+        st.session_state.state = 'Create_Resume'
         return {'resume': result.get("answer")}
     
     # -----------------------------------------------
@@ -219,7 +224,7 @@ class agents:
                     {input}
 
                 Job Description:
-                    {job_description if job_description else 'No job description is provied by user end'}
+                    {job_description}
 
                 You are an hiring expert and have gained exceptional level of experiance in hiring most suitable candidates.
                 Analyze the resume and provide your take allowing the resume more job description centric.'''}
@@ -231,9 +236,10 @@ class agents:
 
         # trimme message history
         trimmed_history = cls.history_trimmer(st.session_state.output_data['message_data'])
+        job_desc = st.session_state.data_uploaded.get('job_description', "No Job description provided")
 
         input_data = {'input' : state.get('resume'),
-                      'job_description' : st.session_state.data_uploaded.get('job_description'),
+                      'job_description' : job_desc,
                       'chat_history' : trimmed_history
                       }
                 
@@ -242,11 +248,12 @@ class agents:
         st.session_state.output_data['message_data'].append(system)
         st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get('answer')})
 
-        if result.sentiment == 'Perfect':
+        output = result.get('answer')
+        if output.sentiment == 'Perfect':
             log.info('Review Agent - Final Resume') # log
             return {'final_resume': result.get('resume')}
             
-        elif result.sentiment == 'Improvement Required':
+        elif output.sentiment == 'Improvement Required':
             log.info('Review Agent - Improvent is required') # log
             return {'suggestion': result.get('suggestion'), 
                     'sentiment' : result.get('sentiment'), 
@@ -265,10 +272,20 @@ class agents:
     def sentiment(cls, state: State):
         log.debug('Sentiment-After-Interrupt') # log
         prompt = ChatPromptTemplate.from_messages([{'role': 'system', 
-                                                    'content': f'''
-                                                        Analyze the following text and respond if improvement is required or not:
-                                                            {'user_suggestion'}
-                                                    '''}])
+                'content': """
+                Analyze the following user suggestion and determine if the resume needs improvement:
+                
+                User Suggestion:
+                    {suggestion}
+                
+                Rules for Analysis:
+                1. If the user expresses satisfaction or approval, return 'Perfect'.
+                2. If the user requests any changes or improvements, return 'Improvement Required'.
+                3. If user says ok, good, fine short positive terms or terms like proceed, next, that means move forward then return 'Perfect'.
+                
+                You must respond with either 'Perfect' or 'Improvement Required'.
+                """}])
+        log.debug(f'Graph User suggestion - {state["user_suggestion"]}') # log
         chain = prompt | cls.model.with_structured_output(response_analysis)
         res = chain.invoke({
             'suggestion' : state['user_suggestion']

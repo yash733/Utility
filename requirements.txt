@@ -8,3 +8,5 @@ langchain-community
 faiss-cpu
 pypdf2
 docx
+PyMuPDF 
+Pillow
