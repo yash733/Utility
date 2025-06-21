@@ -13,7 +13,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from LLMbackend.data_extraction import data_extraction
 from config.resume_template import default
-from config.variable_validation import State, response_analysis, expert_review_resume
+from config.variable_validation import State, response_analysis, expert_review_resume, output_fmt
 from logger.logg_rep import logging
 
 # ===============================
@@ -40,7 +40,8 @@ class vector_db:
         
         vector_db.create_vector_db()
         log.info('Featching Relevant information from vectordb') # log
-        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 6})
+        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 6}, 
+                                                 similarity_score_threshold = 0.3)
         doc_chain = create_stuff_documents_chain(llm = model,
                                                  prompt = prompt, 
                                                  document_variable_name = "context")
@@ -125,7 +126,7 @@ class agents:
                     - Highlight achievements and relevant experience.
                     - Use bullet points where appropriate.
 
-                Generate the complete resume that can be converted to pdf and directly be send to recruter.'''}
+                Generate the complete resume in markdown fromat following the template provided.'''}
             
             prompt = ChatPromptTemplate.from_messages([system])
             log.info('Prompt 1') # log
@@ -151,7 +152,7 @@ class agents:
                             {job_description}
 
                         Analyze user query carefully and make the requested changes to the resume, while being relevent to Job Description,
-                        also remember to make it ready to use, by conveing the data directly to pdf format.
+                        also remember to make it ready to use, by providing the output in markdown format.
                         '''}
             
             prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
@@ -178,6 +179,7 @@ class agents:
                         {resume}
                     
                     Make necesary changes to reume, following the suggestion/instruction provided by Hiring Expert, you can access relevant information from context.
+                    And provided the resume in markdown format, for quick conversion to pdf format.
                     '''}
             
             prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
@@ -188,9 +190,11 @@ class agents:
             input_data = {'input' : expert_review_resume.get('suggestion'),
                           'resume' : State.get('resume'),
                           'chat_history' : trimmed_history}
-            
+        
+        # structured output Resume + Meta Data
+        model = cls.model.with_structured_output(output_fmt)
         # featching relevant doocuments
-        retrieval_chain = vector_db.get_retrieval_chain(cls.model, prompt)            
+        retrieval_chain = vector_db.get_retrieval_chain(model, prompt)            
 
         # executing
         result = retrieval_chain.invoke(input_data)
@@ -217,7 +221,7 @@ class agents:
 
         system = {'role':'system',
                 'content':'''
-                More Information:
+                Context (Extracted from Vector_DB):
                     {context}
 
                 Resume Created by AI:
@@ -244,7 +248,8 @@ class agents:
                       }
                 
         result = retrieval_chain.invoke(input_data)
-        log.debug(f'Review Agent - {result}')
+        log.debug(f'Review Agent - {result}') # log
+
         st.session_state.output_data['message_data'].append(system)
         st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get('answer')})
 
@@ -296,6 +301,13 @@ class agents:
             return 'Perfect'
         elif res.sentiment == 'Improvement Required':
             return 'Improvement Required'
+
+    # ---------------------------------------------
+    @classmethod
+    def pdf_convert(cls, state = State):
+        log.info("Final PDF Conversion") # log
+        output_dir = os.join(os.path.dirname(__file__),'..') # Parent folder
+        os.makedirs(output_dir, exist_ok = True)
 
 
     # *********************************************** #

@@ -197,26 +197,24 @@ class data_extraction:
     @staticmethod
     def data_flatning():
         documents = list()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1000, chunk_overlap = 200)
+
         for key, value in st.session_state.data_uploaded['data'].items():
             for file_key, file_value in value.items():
                 content = file_value.get('content')
                 data_represts = file_value.get('data_representation')
                 file_name = file_key
 
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size = 1000, chunk_overlap = 200)
-            # log
-            data_track.info('Data divided into chunks')
-
-            # ----- Creating Object based Document ----- #
-            chunks = text_splitter.create_documents([content])
-            # log
-            data_track.info('converted uploaded data into object type')
-
-            for chunk in chunks:
-                # ----- Adding Metatadata into Object based Document ----- #
-                chunk.metadata = {'file_name':file_name, 'data_representation':data_represts}
-                documents.append(chunk)
-            # log 
-            data_track.info('Attached Meta data to each chunk of data')
+                # ----- Creating Object based Document ----- #
+                chunks = text_splitter.create_documents([content])
+                # [Document(metadata={}, page_content='data_from_file')]
+                data_track.info('Data divided into chunks and convert it into Documnet Type') # log
+                
+                for chunk in chunks:
+                    # ----- Adding Metatadata into Object based Document ----- #
+                    chunk.metadata = {'file_name':file_name, 'data_representation':data_represts}
+                    documents.append(chunk)            
+                    data_track.info('Attached Meta data to each chunk of data') # log
+                    # Document(metadata={'file_name': 'file_1', 'data_representation': 'rs'}, page_content='data_from_file')
         
         return documents

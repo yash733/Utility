@@ -76,7 +76,7 @@ class Option_page:
             else:
                 st.stop()           
 
-        elif st.session_state.state == 'Agent':
+        elif st.session_state.state == 'Agent': 
             res_debug.debug('Agent Inteface') # log 
             current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
             with st.chat_message('ai'):

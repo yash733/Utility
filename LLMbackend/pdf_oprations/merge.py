@@ -6,7 +6,9 @@ import base64
 from PIL import Image
 import fitz  # PyMuPDF for PDF preview
 import tempfile
-import os
+
+import os,sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 def pdf_to_image(pdf_bytes, page_num=0):
     """Convert PDF page to image for preview"""
@@ -78,8 +80,6 @@ def main():
     st.markdown("Upload multiple PDF files, arrange their order, and merge them into a single document.")
     
     # Initialize session state
-    if 'uploaded_files' not in st.session_state:
-        st.session_state.uploaded_files = []
     if 'positions' not in st.session_state:
         st.session_state.positions = {}
     

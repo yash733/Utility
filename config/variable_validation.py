@@ -16,5 +16,9 @@ class response_analysis(BaseModel):
 
 class expert_review_resume(BaseModel):
     sentiment : Literal['Perfect', 'Improvement Required'] = Field(..., description='If review agent thinks some sort of improvement is required then it will pass "Improvement Required" if all is at perfection ir will pass "Perfect"')
-    suggestion : Optional[str] = Field(description=f'If "sentiment" == "Improvement Required", then provide detailed instruction and areas of improvement required to improve resume impact increasing selection chances.')
-    resume : Optional[str] = Field(description=f'If "sentiment" == "Perfect" then provide the final tailored resume.')
+    suggestion : Optional[str] = Field(description='If "sentiment" == "Improvement Required", then provide detailed instruction and areas of improvement required to improve resume impact increasing selection chances.')
+    resume : Optional[str] = Field(description='If "sentiment" == "Perfect" then provide the final tailored resume In markdown.')
+
+class output_fmt(BaseModel):
+    resume : str = Field(description="Only holds the resume content in markdown format, without any sort of additional comments or metadata")
+    meta_data : Optional[str] = Field(description="Holds additional information like instructions, tips, comments or any other meta data")

@@ -2,6 +2,12 @@ import streamlit as st
 import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
+st.set_page_config(
+        page_title="Muti Untility",
+        page_icon="🧰",
+        layout="wide"
+    )
+
 st.title("🎯 Personal Utility Tools")
 
 from logger.logg_rep import logging
