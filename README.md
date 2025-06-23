@@ -18,7 +18,11 @@
 ## Accuracy Issue, as you can see the name and other information like connection link's are wrong.
 ---
 ## To Work on - <br>
-data_exteaction - 153 to 164 "Save button not working" | used form fomat to hadle meta data interactions.<br>
-After adding user_requirement - "None Type error is comming" | still present something is wrong with model intialization, even after testing the connection at the beginning.<br>
-
-Adding more functionality ## Not taking on untill one function is not working as intended.
+AttributeError: 'response_analysis' object has no attribute 'confidence'
+Traceback:
+File "D:\LLM\Personal_Utility\ui\app.py", line 49, in <module>
+    chack_option()
+File "D:\LLM\Personal_Utility\.\ui\sidebar.py", line 86, in chack_option
+    call_funct()
+File "D:\LLM\Personal_Utility\LLMbackend\llm.py", line 74, in create_resume
+    st.session_state.work_flow.invoke(None, config = st.session_state.config)
