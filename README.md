@@ -15,7 +15,7 @@
 ### For Resume Maker
 ![flow_chart](https://github.com/user-attachments/assets/17e043f9-c933-4c50-a623-9f9704b87c13)
 ![image](https://github.com/user-attachments/assets/401e0a8f-32ae-4732-8e79-b11177806327)
-## Accuracy Issue, as you can see the name and other information like connection link's are wrong.
+## Accuracy Issue, as you can see the name and other information like communication link's are wrong.
 ---
 ## To Work on - <br>
 AttributeError: 'response_analysis' object has no attribute 'confidence'
