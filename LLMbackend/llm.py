@@ -92,7 +92,7 @@ class Option_page:
                         st.markdown(msg.get('content'))
             
             # Save .pdf
-            save_resume_as_pdf(current_state.values['resume'])                       
+            # save_resume_as_pdf(current_state.values['resume'])                       
 
     def create_cv(self):
         pass

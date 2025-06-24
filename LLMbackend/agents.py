@@ -49,15 +49,34 @@ class vector_db:
                                       retriever = retriever)
 
 def result_Message_history(result):
-    answer = result.get("answer")
-    if hasattr(answer, "resume"):
-        content = answer.resume
-        if answer.meta_data:
-            content += f"\n\n---\n**Meta:** {answer.meta_data}"
-    else:
-        content = answer
-    return content
-
+    try:
+        if isinstance(result, dict):
+            answer = result.get("answer")
+        elif hasattr(result,"answer"):
+            answer = result.answer
+        
+        if hasattr(answer, "resume"):
+            content = answer.resume
+            if hasattr(answer,'meta_data'):
+                content += f"\n\n---\n**Meta:** {answer.meta_data}"
+            else:
+                pass
+        else:
+            content = answer
+        return content
+    except:
+        if isinstance(result, dict):
+            answer = result.get("content")
+        elif hasattr(result,"content"):
+            answer = result.content
+        if hasattr(answer, "resume"):
+            content = answer.resume
+            if hasattr(answer,'meta_data'):
+                content += f"\n\n---\n**Meta:** {answer.meta_data}"
+        else:
+            content = answer
+        return content
+    
 class agents:
     model = None
     
