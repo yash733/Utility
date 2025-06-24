@@ -5,10 +5,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
 class State(TypedDict):
     resume : str
-    user_requirement : str
-    user_suggestion : str
+    user_requirement : Optional[str]
+    user_suggestion : Optional[str]
     final_resume : str
-    suggestion : str
+    suggestion : Optional[str]
     sentiment : Literal['Perfect', 'Improvement Required']
 
 class response_analysis(BaseModel):

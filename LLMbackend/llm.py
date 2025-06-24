@@ -23,7 +23,7 @@ class Option_page:
         st.write('Help you create or improve existing resume, wich is JD specific.')
         
         if st.session_state.state == 'START':
-            if not st.session_state.get('meta_data_saved'):
+            if not st.session_state.data_uploaded.get('data'):
                 # file upload and processing -->
                 with st.spinner('Loading Data'):
                     data_extraction.resume_data_extraction()
@@ -47,16 +47,13 @@ class Option_page:
                 with open(flowchart, 'wb') as f:
                     f.write(chart)
 
-            # LLM Integration
-            user_requirement = st.chat_input('What kind of resume you want to create? Enter your requirement:-')
-            res_debug.info(f'User_requirement - {user_requirement}') # log
-
-            if user_requirement: 
                 # ===== START ===== #
                 with st.spinner('Processing'):
-                    st.session_state.work_flow.invoke(input={'user_requirement':user_requirement}, config=st.session_state.config)
+                    user_requirement = st.session_state.data_uploaded.get('user_requirement')
+                    st.session_state.work_flow.invoke(input={'user_requirement':user_requirement if user_requirement else ''}, 
+                                                      config=st.session_state.config)
                     res_debug.info('First Invoke --') # log
-                    res_debug.debug(st.session_state.output_data.get('message_data'))
+                    res_debug.debug(f"Message State - {st.session_state.output_data.get('message_data')}") # log
                     st.rerun()
 
         elif st.session_state.state == 'Create_Resume':
@@ -65,10 +62,13 @@ class Option_page:
             # After Interrupt -->
             current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
             with st.chat_message('ai'):
-                st.markdown(current_state.values['resume'])         
+                try:
+                    st.write(current_state.values["resume"].resume)
+                except:
+                    st.write(current_state.values["resume"])
 
-            user_suggestion = st.chat_input('Enter either your are satisfied or improvement is required')
-            if user_suggestion:
+            user_suggestion = st.text_area('Enter either your are satisfied or improvement is required')
+            if st.button('Next', key = 'User_suggestion'):
                 with st.spinner('Processing'):
                     st.session_state.work_flow.update_state(config = st.session_state.config, values = {'user_suggestion':user_suggestion})
                     st.session_state.work_flow.invoke(None, config = st.session_state.config)

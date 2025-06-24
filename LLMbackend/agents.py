@@ -12,9 +12,9 @@ from langgraph.graph import START, END, StateGraph
 from langgraph.checkpoint.memory import MemorySaver
 
 from LLMbackend.data_extraction import data_extraction
-from config.resume_template import default
 from config.variable_validation import State, response_analysis, expert_review_resume, output_fmt
 from logger.logg_rep import logging
+from config.prompts import interrupt_, review_agent_to_create_resume, start_create_resume, review_agent
 
 # ===============================
 log = logging.getLogger('Graph')
@@ -40,17 +40,27 @@ class vector_db:
         
         vector_db.create_vector_db()
         log.info('Featching Relevant information from vectordb') # log
-        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 6}, 
+        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 10}, 
                                                  similarity_score_threshold = 0.3)
         doc_chain = create_stuff_documents_chain(llm = model,
                                                  prompt = prompt, 
                                                  document_variable_name = "context")
         return create_retrieval_chain(combine_docs_chain = doc_chain, 
                                       retriever = retriever)
-    
+
+def result_Message_history(result):
+    answer = result.get("answer")
+    if hasattr(answer, "resume"):
+        content = answer.resume
+        if answer.meta_data:
+            content += f"\n\n---\n**Meta:** {answer.meta_data}"
+    else:
+        content = answer
+    return content
+
 class agents:
     model = None
-  
+    
     @classmethod
     def initialize_model(cls):
         if cls.model is None:
@@ -99,64 +109,21 @@ class agents:
         # === First RUN === #
         if st.session_state.state == 'START': # State tracking
             
-            system = {'role':'system',
-                'content':'''
-                You are an expert resume writer and ATS (Applicant Tracking System) specialist.
-
-                Context:
-                    {context}
-
-                User Requirement:
-                    {input}
-
-                Job Description:
-                    Instructions:
-                    - If its no data is present then leave this field.
-                    - If data is provided from user-end then make shure to add all the relevant field details that will make candidate stand-out in croud.
-                    {job_description}
-
-                Resume Template Description:
-                
-                    [Resume Template]
-                    ==========================
-                    {template}
-                    ==========================
-
-                    - Ensure the resume is concise, well-structured, and tailored to the user's inputs.
-                    - Highlight achievements and relevant experience.
-                    - Use bullet points where appropriate.
-
-                Generate the complete resume in markdown fromat following the template provided.'''}
-            
+            system = start_create_resume.prompt()
             prompt = ChatPromptTemplate.from_messages([system])
             log.info('Prompt 1') # log
 
             input_data = {'input' : state.get('user_requirement'),
                           'job_description' : st.session_state.data_uploaded.get('job_description'),
-                          'template' : st.session_state.template_data}
+                          'template' : st.session_state.data_uploaded.get('template_data')}
             
         # === Loop RUN === #
         elif st.session_state.state == 'Interrupt':
-            system = {'role':'system',
-                        'content':'''
-                        Context:
-                            {context}
-
-                        Changes requested by User:
-                            {input}
-
-                        Current Resume:
-                            {resume}
-
-                        Job Description:
-                            {job_description}
-
-                        Analyze user query carefully and make the requested changes to the resume, while being relevent to Job Description,
-                        also remember to make it ready to use, by providing the output in markdown format.
-                        '''}
+            system = interrupt_.prompt()
             
             prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
             log.info('Prompt 2 Interrupt') # log
+            log.debug(f'resume - {state.get("resume")}')
 
             # Trim Message
             trimmed_history = cls.history_trimmer(st.session_state.output_data['message_data'])
@@ -167,28 +134,15 @@ class agents:
 
         # === Loop RUN === #
         elif st.session_state.state == 'Agent':
-            system = {'role':'system',
-                    'content': '''
-                    Context:
-                        {context}
-
-                    Changes suggested by Hiring Expert:
-                        {input}
-                        
-                    Current Resume:
-                        {resume}
-                    
-                    Make necesary changes to reume, following the suggestion/instruction provided by Hiring Expert, you can access relevant information from context.
-                    And provided the resume in markdown format, for quick conversion to pdf format.
-                    '''}
+            system = review_agent_to_create_resume.prompt()
             
             prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name="chat_history")])
             log.info('Prompt 3 Agent') # log
 
             # Trim Message
             trimmed_history = cls.history_trimmer(st.session_state.output_data['message_data'])
-            input_data = {'input' : expert_review_resume.get('suggestion'),
-                          'resume' : State.get('resume'),
+            input_data = {'input' : state.get('suggestion'),
+                          'resume' : state.get('resume'),
                           'chat_history' : trimmed_history}
         
         # structured output Resume + Meta Data
@@ -199,14 +153,17 @@ class agents:
         # executing
         result = retrieval_chain.invoke(input_data)
         log.info(f'result , {result}') # log
-        log.debug(f'Output 1 - {result.get("answer")}') # log
+        log.debug(f'Output 1 - {result.get("answer").resume}') # log
 
+        # Message History
+        content = result_Message_history(result)
         st.session_state.output_data['message_data'].append(system)
-        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get("answer")})
+        st.session_state.output_data['message_data'].append({'role': 'assistant', 'content': content})
+        
         log.info(f'State {st.session_state.state}') # log
         
         st.session_state.state = 'Create_Resume'
-        return {'resume': result.get("answer")}
+        return {'resume': result.get("answer").resume}
     
     # -----------------------------------------------
     def user_input_interrupt(state: State):
@@ -219,20 +176,8 @@ class agents:
     def review_agent(cls, state: State):
         st.session_state.state = 'Agent' # State tracking
 
-        system = {'role':'system',
-                'content':'''
-                Context (Extracted from Vector_DB):
-                    {context}
+        system = review_agent.prompt()
 
-                Resume Created by AI:
-                    {input}
-
-                Job Description:
-                    {job_description}
-
-                You are an hiring expert and have gained exceptional level of experiance in hiring most suitable candidates.
-                Analyze the resume and provide your take allowing the resume more job description centric.'''}
-        
         prompt = ChatPromptTemplate.from_messages([system, MessagesPlaceholder(variable_name='chat_history')])
 
         model = cls.model.with_structured_output(expert_review_resume)
@@ -250,9 +195,11 @@ class agents:
         result = retrieval_chain.invoke(input_data)
         log.debug(f'Review Agent - {result}') # log
 
+        # ---- Message History ---- 
+        content = result_Message_history(result)
         st.session_state.output_data['message_data'].append(system)
-        st.session_state.output_data['message_data'].append({'role':'assistant', 'content':result.get('answer')})
-
+        st.session_state.output_data['message_data'].append({'role': 'assistant', 'content': content})
+        
         output = result.get('answer')
         if output.sentiment == 'Perfect':
             log.info('Review Agent - Final Resume') # log
@@ -278,28 +225,49 @@ class agents:
         log.debug('Sentiment-After-Interrupt') # log
         prompt = ChatPromptTemplate.from_messages([{'role': 'system', 
                 'content': """
-                Analyze the following user suggestion and determine if the resume needs improvement:
-                
-                User Suggestion:
-                    {suggestion}
-                
-                Rules for Analysis:
-                1. If the user expresses satisfaction or approval, return 'Perfect'.
-                2. If the user requests any changes or improvements, return 'Improvement Required'.
-                3. If user says ok, good, fine short positive terms or terms like proceed, next, that means move forward then return 'Perfect'.
-                
-                You must respond with either 'Perfect' or 'Improvement Required'.
+                Analyze the user's feedback about a resume and classify their sentiment.
+            
+            User Feedback: {suggestion}
+            
+            CLASSIFICATION LOGIC:
+            
+            Return 'Perfect' if the user:
+            ✓ Shows satisfaction: "good", "great", "perfect", "excellent", "nice", "looks good"
+            ✓ Wants to proceed: "ok", "okay", "fine", "proceed", "next", "continue", "done", "move on"
+            ✓ Gives approval: "yes", "correct", "right", "approve", "accept"
+            ✓ Uses brief positive terms without requesting changes
+            
+            Return 'Improvement Required' if the user:
+            ✗ Requests changes: "change", "modify", "alter", "fix", "update", "adjust"
+            ✗ Wants improvements: "improve", "better", "enhance", "add", "remove", "include"
+            ✗ Shows dissatisfaction: "not good", "bad", "needs work", "lacking"
+            ✗ Asks specific questions about modifications
+            ✗ Provides detailed feedback suggesting alterations
+            
+            EXAMPLES:
+            "" → Perfect
+            "ok" → Perfect
+            "looks good" → Perfect  
+            "proceed" → Perfect
+            "can you add more skills?" → Improvement Required
+            "change the format" → Improvement Required
+            "it needs work" → Improvement Required
+            
+            Respond with ONLY: 'Perfect' or 'Improvement Required'
                 """}])
+        
         log.debug(f'Graph User suggestion - {state["user_suggestion"]}') # log
+        
         chain = prompt | cls.model.with_structured_output(response_analysis)
-        res = chain.invoke({
-            'suggestion' : state['user_suggestion']
-        })
+        response = chain.invoke({
+            'suggestion' : state['user_suggestion']})
 
-        log.debug(f'{res} , {res.sentiment}') #log
-        if res.sentiment == 'Perfect':
+        log.debug(f'Sentiment analysis result: {response.sentiment}')
+                #  f'(confidence: {response.confidence:.2f}) - {response.reasoning}') #log
+        
+        if response.sentiment == 'Perfect':
             return 'Perfect'
-        elif res.sentiment == 'Improvement Required':
+        elif response.sentiment == 'Improvement Required':
             return 'Improvement Required'
 
     # ---------------------------------------------

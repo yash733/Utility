@@ -5,6 +5,7 @@ import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from config.extract_test_run import job_desc
 
 from config.resume_template import default
 from logger.logg_rep import logging
@@ -153,10 +154,10 @@ class data_extraction:
         if st.session_state.data_uploaded.get('data'):
             data_track.info('Meta Data') # log
 
-            if 'jd_data' not in st.session_state:
-                st.session_state.jd_data = ""
-            if 'template_data' not in st.session_state:
-                st.session_state.template_data = default()
+            # if 'jd_data' not in st.session_state:
+            #     st.session_state.data_uploaded['jd_data'] = ""
+            # if 'template_data' not in st.session_state:
+            #     st.session_state.template_data = default()
 
             # jd_data = st.text_area('Job Discription')
             # template_data = st.text_area('Resume Template', value = default())
@@ -166,28 +167,30 @@ class data_extraction:
             with st.form(key='meta_data_form'):
                 jd_data = st.text_area(
                     'Job Description', 
-                    value=st.session_state.jd_data,
-                    height=200
+                    value = job_desc(),
+                    height = 200
                 )
                 template_data = st.text_area(
                     'Resume Template', 
-                    value=st.session_state.template_data,
-                    height=400
+                    value = default(),
+                    height = 400
+                )
+                user_requirement = st.text_area(
+                    'Enter if any special requirement:-',
+                    height = 200
                 )
                 # Submit button inside form
                 submit = st.form_submit_button('Save Meta Data')
-                data_track.info(f'Template {template_data}') # log
-                data_track.info(f'Job description {jd_data}') # log
+                # data_track.info(f'Template {template_data} \nJob description {jd_data} \nUser Requirement {user_requirement}') # log
             
             if submit:
                 if jd_data:
-                    st.session_state.jd_data = jd_data
                     st.session_state.data_uploaded['job_description'] = jd_data
                     data_track.info('JD added')
                 if template_data:
-                    st.session_state.template_data = template_data
                     st.session_state.data_uploaded['template_data'] = template_data
                     data_track.info('Template added')
+                st.session_state.data_uploaded['user_requirement'] = user_requirement
                 
                 st.session_state['meta_data_saved'] = True
                 st.success("Meta data saved successfully!")
