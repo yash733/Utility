@@ -14,6 +14,12 @@ res_debug = logging.getLogger('create_resume')
 res_debug.setLevel(logging.DEBUG)
 # ======================================= #
 
+def show_message(current_state):
+    message = current_state.values['resume']
+    if hasattr(message,'resume'):
+        return current_state.values['resume'].resume
+    return message
+
 class Option_page:
     def __init__(self):
         pass  
@@ -61,11 +67,10 @@ class Option_page:
 
             # After Interrupt -->
             current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
+            # Show Output
             with st.chat_message('ai'):
-                try:
-                    st.write(current_state.values["resume"].resume)
-                except:
-                    st.write(current_state.values["resume"])
+                message = show_message(current_state)
+                st.write(message)
 
             user_suggestion = st.text_area('Enter either your are satisfied or improvement is required')
             if st.button('Next', key = 'User_suggestion'):
@@ -79,9 +84,20 @@ class Option_page:
         elif st.session_state.state == 'Agent': 
             res_debug.debug('Agent Inteface') # log 
             current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
-            with st.chat_message('ai'):
-                st.markdown(current_state.values['resume'])
+            message = show_message(current_state)
+
+            # Notepad for edit
+            edit_resume = st.text_area(label="Edit your resume",
+                         value=message,
+                         height=300,
+                         key = "EDIT Resume")
             
+            # Show Output
+            with st.chat_message('ai'):
+                st.write(message)
+            with st.chat_message('user'):
+                st.write(edit_resume)
+
             with st.expander('Call information'):
                 state = st.session_state.work_flow.get_state_history(config = st.session_state.config)
                 st.markdown(state)
@@ -90,7 +106,7 @@ class Option_page:
                 for msg in st.session_state.output_data['message_data']:
                     with st.chat_message(msg.get('role')):
                         st.markdown(msg.get('content'))
-            
+
             # Save .pdf
             # save_resume_as_pdf(current_state.values['resume'])                       
 

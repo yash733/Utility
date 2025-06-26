@@ -40,7 +40,7 @@ class vector_db:
         
         vector_db.create_vector_db()
         log.info('Featching Relevant information from vectordb') # log
-        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 10}, 
+        retriever = cls._vectore_db.as_retriever(search_kwargs={'k': 20}, 
                                                  similarity_score_threshold = 0.3)
         doc_chain = create_stuff_documents_chain(llm = model,
                                                  prompt = prompt, 
@@ -221,11 +221,11 @@ class agents:
         
         output = result.get('answer')
         if output.sentiment == 'Perfect':
-            log.info('Review Agent - Final Resume') # log
+            log.info(f'Review Agent - Final Resume == { result.get("resume")}') # log
             return {'final_resume': result.get('resume')}
             
         elif output.sentiment == 'Improvement Required':
-            log.info('Review Agent - Improvent is required') # log
+            log.info('Review Agent - Improvent is required \nsuggestion: {result.get("suggestion")} \nsentiment: {result.get("sentiment")} \nresume: {result.get("resume")}') # log
             return {'suggestion': result.get('suggestion'), 
                     'sentiment' : result.get('sentiment'), 
                     'resume' : result.get('resume')}
@@ -234,7 +234,7 @@ class agents:
     def rout_after_reviewagent(state: State):
         log.debug('re-rout after_reviewagent') # log
         if state.get('final_resume'):
-            return END
+            return 'End'
         elif state.get('sentiment') == 'Improvement Required':
             return 'Re-run'
     
@@ -352,7 +352,7 @@ class agents:
             .add_edge(START, 'Resume Maker')
             .add_edge('Resume Maker', 'User Feedback')
             .add_conditional_edges('User Feedback', cls.sentiment, {'Perfect': 'Review Expert', 'Improvement Required': 'Resume Maker'})
-            .add_conditional_edges('Review Expert', cls.rout_after_reviewagent, {END : END, 'Re-run' : 'Resume Maker'})
+            .add_conditional_edges('Review Expert', cls.rout_after_reviewagent, {'End' : END, 'Re-run' : 'Resume Maker'})
             .compile(interrupt_before=['User Feedback'], checkpointer = MemorySaver())
         )
         return _graph
