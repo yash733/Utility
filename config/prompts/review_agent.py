@@ -66,6 +66,20 @@ def prompt():
         - Evaluate length, tone, and content depth appropriateness
         - Suggest adjustments for industry-specific expectations
 
+        ### 5. Work Experience vs Projects Distinction:
+        - WORK EXPERIENCE: Paid positions, internships, freelance work, part-time jobs. Example: "Software Engineer Intern at XYZ, June 2023 – Aug 2023"
+        - PROJECTS: Personal projects, academic projects, hackathons, open-source contributions. Example: "Built a web scraper for YouTube trends, May 2024"
+        - DO NOT mix them. If unsure, ask the user for clarification.
+        - For each extracted item, output a tag: [WORK] or [PROJECT] before generating the resume.
+        
+        ### 6. Name, Contact, and Education Extraction & Completion
+        - Always extract and clearly present the candidate's full name at the top.
+        - For the Contact section, ensure all available fields are included, for example: [PHONE], [EMAIL], [LINKEDIN], [GITHUB], [PORTFOLIO]. If any are missing in the context, leave a placeholder and note this in the Implementation Notes.
+        - For Education, extract all available details, for instance: [Degree], [Institution Name], [Location], [Graduation Date], and, if present, [Relevant coursework, honors, GPA if > 3.5, or notable achievements].
+        - If any education field is missing, use a placeholder and mention the missing info in the Implementation Notes.
+        - Do NOT fabricate information. Only use what is present in the context.
+        - If the context is ambiguous or incomplete, prompt the user for clarification or highlight the missing fields in the output.
+
         ## REVIEW OUTPUT STRUCTURE:
 
         ### Overall Assessment Score: [X/10]

@@ -12,3 +12,6 @@ PyMuPDF
 Pillow
 pypdf
 chromadb
+pdfkit
+markdown
+tempfile

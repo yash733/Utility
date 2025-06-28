@@ -168,7 +168,7 @@ class data_extraction:
                 jd_data = st.text_area(
                     'Job Description', 
                     value = job_desc(),
-                    height = 200
+                    height = 400
                 )
                 template_data = st.text_area(
                     'Resume Template', 
@@ -184,18 +184,14 @@ class data_extraction:
                 # data_track.info(f'Template {template_data} \nJob description {jd_data} \nUser Requirement {user_requirement}') # log
             
             if submit:
-                if jd_data:
-                    st.session_state.data_uploaded['job_description'] = jd_data
-                    data_track.info('JD added')
-                if template_data:
-                    st.session_state.data_uploaded['template_data'] = template_data
-                    data_track.info('Template added')
+                st.session_state.data_uploaded['job_description'] = jd_data
+                st.session_state.data_uploaded['template_data'] = template_data
                 st.session_state.data_uploaded['user_requirement'] = user_requirement
-                
                 st.session_state['meta_data_saved'] = True
                 st.success("Meta data saved successfully!")
+                data_track.critical(f"Data_Uploaded --> {st.session_state.data_uploaded}") # log
                 st.rerun()
-            return
+                return
 
     @staticmethod
     def data_flatning():

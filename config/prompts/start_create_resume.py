@@ -35,6 +35,7 @@ def prompt():
         - Replace [LOCATION] with city, state/country
         - Replace [GITHUB] with GitHub link (if available)
         - Replace [PORTFOLIO] with portfolio link (if available)
+        - Or any other data in similar format.
 
         ### 5. Job Description Tailoring:
         - If job description is provided, emphasize relevant skills and experience
@@ -43,6 +44,7 @@ def prompt():
         - If no job description provided, create a general professional resume
 
         ### 6. Output Requirements:
+        - If any field, section or other relevant data was not able to find then explecitly ask the for it
         - Generate COMPLETE resume in markdown format
         - Use proper markdown syntax for headers, bullets, links
         - Ensure ATS-friendly formatting

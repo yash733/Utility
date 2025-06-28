@@ -9,6 +9,11 @@ from LLMbackend.pdf_creator import save_resume_as_pdf
 from LLMbackend.pdf_oprations.merge import main
 from logger.logg_rep import logging
 
+import markdown
+import pdfkit
+import io
+import tempfile
+
 # ======================================= #
 res_debug = logging.getLogger('create_resume')
 res_debug.setLevel(logging.DEBUG)
@@ -29,7 +34,7 @@ class Option_page:
         st.write('Help you create or improve existing resume, wich is JD specific.')
         
         if st.session_state.state == 'START':
-            if not st.session_state.data_uploaded.get('data'):
+            if not st.session_state.data_uploaded.get('data') or not st.session_state.get('meta_data_saved'):
                 # file upload and processing -->
                 with st.spinner('Loading Data'):
                     data_extraction.resume_data_extraction()
@@ -73,15 +78,25 @@ class Option_page:
                 st.write(message)
 
             user_suggestion = st.text_area('Enter either your are satisfied or improvement is required')
-            if st.button('Next', key = 'User_suggestion'):
-                with st.spinner('Processing'):
-                    st.session_state.work_flow.update_state(config = st.session_state.config, values = {'user_suggestion':user_suggestion})
+
+            col1, col2 = st.columns([1,1])
+            with col2 :
+                if st.button('Satisfied by Result terminate futher processing'):
+                    st.balloons()
+                    st.session_state.output_data['Re_rout_'] = True
                     st.session_state.work_flow.invoke(None, config = st.session_state.config)
                     st.rerun()
-            else:
-                st.stop()           
 
-        elif st.session_state.state == 'Agent': 
+            with col1:
+                if st.button('Next', key = 'User_suggestion'):
+                    with st.spinner('Processing'):
+                        st.session_state.work_flow.update_state(config = st.session_state.config, values = {'user_suggestion':user_suggestion})
+                        st.session_state.work_flow.invoke(None, config = st.session_state.config)
+                        st.rerun()
+                else:
+                    st.stop()           
+
+        elif st.session_state.state == 'Agent' or st.session_state.output_data.get('Re_rout_'): 
             res_debug.debug('Agent Inteface') # log 
             current_state = st.session_state.work_flow.get_state(config = st.session_state.config)
             message = show_message(current_state)
@@ -89,18 +104,40 @@ class Option_page:
             # Notepad for edit
             edit_resume = st.text_area(label="Edit your resume",
                          value=message,
-                         height=300,
+                         height=600,
                          key = "EDIT Resume")
             
-            # Show Output
-            with st.chat_message('ai'):
-                st.write(message)
-            with st.chat_message('user'):
-                st.write(edit_resume)
+            file_name = st.text_input(label="Setup File Name")
+            
+            # Convert markdown to HTML
+            html_resume = markdown.markdown(edit_resume)
+            if file_name:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+                    pdfkit.from_string(html_resume, tmp_pdf.name)
+                    tmp_pdf.seek(0)  # Start from begining
+                    pdf_bytes = tmp_pdf.read()
+                    
+                st.download_button(
+                    label="📥 Download Merged PDF",
+                    data=pdf_bytes,
+                    file_name=file_name if file_name else 'Final Resume.pdf',
+                    mime="application/pdf",
+                    type="primary",
+                    use_container_width=True
+                )
+
+            # # Show Output
+            # with st.expander('Message ')
+            # with st.chat_message('ai'):
+            #     st.write(message)
+            # with st.chat_message('user'):
+            #     st.write(edit_resume)
 
             with st.expander('Call information'):
-                state = st.session_state.work_flow.get_state_history(config = st.session_state.config)
-                st.markdown(state)
+                state_ = st.session_state.work_flow.get_state_history(config = st.session_state.config)
+                st.write(state_)
+
+                st.write(State)
             
             with st.expander('Chat history'):
                 for msg in st.session_state.output_data['message_data']:

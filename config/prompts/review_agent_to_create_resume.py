@@ -53,7 +53,13 @@ def prompt():
         - **Section Headers:** Use standard, ATS-friendly section titles
         - **Content Structure:** Organize information for optimal machine parsing
 
-        ### 3. Context Integration Rules
+        ### 3. Work Experience vs Projects Distinction:
+        - WORK EXPERIENCE: Paid positions, internships, freelance work, part-time jobs. Example: "Software Engineer Intern at XYZ, June 2023 – Aug 2023"
+        - PROJECTS: Personal projects, academic projects, hackathons, open-source contributions. Example: "Built a web scraper for YouTube trends, May 2024"
+        - DO NOT mix them. If unsure, ask the user for clarification.
+        - For each extracted item, output a tag: [WORK] or [PROJECT] before generating the resume.
+        
+        ### 4. Context Integration Rules
         **Information Accuracy:**
         - Only use information explicitly provided in the context
         - Never fabricate experience, skills, or achievements
@@ -66,7 +72,7 @@ def prompt():
         - Highlight overlooked accomplishments mentioned in context
         - Reposition experience to match job requirements more closely
 
-        ### 4. Quality Assurance Checklist
+        ### 5. Quality Assurance Checklist
         **Before Finalizing Changes:**
         - [ ] All expert suggestions addressed or acknowledged
         - [ ] No information added that isn't supported by context
@@ -77,14 +83,14 @@ def prompt():
         - [ ] Proper markdown formatting for PDF conversion
         - [ ] All links properly embedded and functional
 
-        ### 5. Change Documentation
+        ### 6. Change Documentation
         **Always Include Brief Change Summary:**
         - List major modifications made
         - Explain any expert suggestions that couldn't be fully implemented (due to missing context information)
         - Highlight key improvements and their expected impact
         - Note any strategic repositioning of existing content
 
-        ### 6. Special Handling Instructions
+        ### 7. Special Handling Instructions
 
         #### **Missing Information Scenarios:**
         - If expert suggests adding information not available in context, implement what's possible and note limitations
@@ -100,6 +106,14 @@ def prompt():
         - Preserve all essential information during reorganization
         - Maintain chronological accuracy in experience sections
         - Ensure new structure serves the candidate's positioning strategy
+
+        ### 8. Name, Contact, and Education Extraction & Completion
+        - Always extract and clearly present the candidate's full name at the top.
+        - For the Contact section, ensure all available fields are included, for example: [PHONE], [EMAIL], [LINKEDIN], [GITHUB], [PORTFOLIO]. If any are missing in the context, leave a placeholder and note this in the Implementation Notes.
+        - For Education, extract all available details, for instance: [Degree], [Institution Name], [Location], [Graduation Date], and, if present, [Relevant coursework, honors, GPA if > 3.5, or notable achievements].
+        - If any education field is missing, use a placeholder and mention the missing info in the Implementation Notes.
+        - Do NOT fabricate information. Only use what is present in the context.
+        - If the context is ambiguous or incomplete, prompt the user for clarification or highlight the missing fields in the output.
 
         ## INPUT DATA:
         **Original Context:** {context}
