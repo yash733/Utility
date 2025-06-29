@@ -21,7 +21,7 @@ def sidebar():
             provider = st.selectbox(label='Provider', options=Config().get_llm())
             if provider == 'GROQ':
                 # -- provider -- api -- model -- # 
-                st.session_state.user_selection.update({'model':'groq', 'api_key':st.text_input(label= 'Enter API key for Groq', type='password'),
+                st.session_state.user_selection.update({'model':'groq', 'api_key':st.text_input(label= 'Enter API key for Groq', type='password').strip(),
                                                          'model_name':st.selectbox(label='Groq Model', options=Config().get_groq_model())})
 
                 if st.session_state.user_selection['api_key'] and st.session_state.user_selection['model_name'] and st.button(label='Proceed', key='Satge1 Groq'):

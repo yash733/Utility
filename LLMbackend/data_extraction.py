@@ -5,7 +5,7 @@ import os, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from config.extract_test_run import job_desc
+from config.resume_job_description import job_desc
 
 from config.resume_template import default
 from logger.logg_rep import logging

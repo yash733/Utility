@@ -6,4 +6,5 @@ uv.lock
 config/__pycache__/
 ui/__pycache__/
 LLMbackend/__pycache__/
-logger
+output.pdf
+simple_tracker.log
