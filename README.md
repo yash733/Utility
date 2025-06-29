@@ -2,13 +2,16 @@
 
 A multi-utility Streamlit application for resume creation, improvement, PDF merging, and more—powered by LLMs (Groq, Ollama) and advanced data extraction.
 
+## 📫 **Causion**
+    - The output quality Heavily Depends on the LLM you use.
+    - Deepseak model is highly inconsistent NOT RECOMMENDED
 ---
 
 ## Features
 
-- **Create Resume:**  
-[X_Post_Showcasing_Working](https://x.com/i/status/1938668567987397080)
-[Youtube_](https://www.youtube.com/watch?v=J79F2RcbWZg)
+### **Create Resume:**  
+[X_Post_Showcasing_Working](https://x.com/i/status/1938668567987397080)<br>
+[Youtube_](https://www.youtube.com/watch?v=J79F2RcbWZg)<br>
 
 - **Expert Feedback Integration:**  
   Incorporate hiring manager feedback and optimize for ATS (Applicant Tracking Systems).
@@ -29,26 +32,21 @@ A multi-utility Streamlit application for resume creation, improvement, PDF merg
 ![pg2](https://github.com/user-attachments/assets/b0ecad74-dd69-4b63-b709-36351985a60f)
 ![pg3](https://github.com/user-attachments/assets/0d2abb0f-2bae-49e3-b6a4-cb92f4007f80)
 ![pg4](https://github.com/user-attachments/assets/4719ce43-767b-440e-a1ef-9dcd454598d4)
+![flow_chart](https://github.com/user-attachments/assets/17e043f9-c933-4c50-a623-9f9704b87c13)
 
 ---
-- **PDF Merge:**  
+### **PDF Merge:**  
   Merge multiple PDF files, preview, and download the result.  
 ![pg1](https://github.com/user-attachments/assets/8dc7656f-dfac-4369-b799-78a24f50d2e3)
 ![pg2](https://github.com/user-attachments/assets/06ff9ab9-e2f6-4718-adf5-22cb418bdf3b)
 ![pg3](https://github.com/user-attachments/assets/771a199b-7207-4cc3-8252-6c66248368bd)
 
 ---
-### For Resume Maker
-
-![image](https://github.com/user-attachments/assets/401e0a8f-32ae-4732-8e79-b11177806327)
-![flow_chart](https://github.com/user-attachments/assets/17e043f9-c933-4c50-a623-9f9704b87c13)
-
-## Accuracy Issue, as you can see the name and other information like communication link's are wrong.
----
 
 ## Getting Started
 
 ### File Structure
+```
 Personal_Utility/
 │
 ├── config/                        # Configuration files for models, prompts, and templates
@@ -87,7 +85,7 @@ Personal_Utility/
 ├── requirements.txt               # Python dependencies
 ├── .gitignore                     # Files/folders to ignore in git
 └── README.md                      # Project overview and instructions
-
+```
 ### Prerequisites
 
 - Python 3.9+
@@ -97,8 +95,10 @@ Personal_Utility/
 ### Installation
 
 1. **Clone the repository:**
-   ```git clone https://github.com/yourusername/Personal_Utility.git
-   cd Personal_Utility```
+   ```
+   git clone https://github.com/yourusername/Personal_Utility.git
+   cd Personal_Utility
+   ```
 
 2. **Install dependencies:**
    ```pip install -r requirements.txt```
@@ -130,7 +130,3 @@ Personal_Utility/
         Ensure your API keys are correct and Ollama is running if using local models.
     - PDF conversion errors?
         Make sure wkhtmltopdf is installed and accessible if using pdfkit.
-
-7. **Causion**
-    - 📫 The output quality Heavily Depends on the LLM you use.
-    - Deepseak model is highly inconsistent NOT RECOMMENDED
