@@ -8,3 +8,4 @@ ui/__pycache__/
 LLMbackend/__pycache__/
 output.pdf
 simple_tracker.log
+.env
