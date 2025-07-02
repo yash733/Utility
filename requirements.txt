@@ -14,4 +14,3 @@ pypdf
 chromadb
 pdfkit
 markdown
-tempfile
