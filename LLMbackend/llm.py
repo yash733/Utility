@@ -118,9 +118,9 @@ class Option_page:
                     pdf_bytes = tmp_pdf.read()
                     
                 st.download_button(
-                    label="📥 Download Merged PDF",
+                    label="📥 Download PDF",
                     data=pdf_bytes,
-                    file_name=file_name if file_name else 'Final Resume.pdf',
+                    file_name=file_name+'.pdf' if file_name else 'Final Resume.pdf',
                     mime="application/pdf",
                     type="primary",
                     use_container_width=True
